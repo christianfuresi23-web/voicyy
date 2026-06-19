@@ -1,0 +1,107 @@
+{
+  "name": "AgentRequest",
+  "type": "object",
+  "properties": {
+    "business_name": {
+      "type": "string",
+      "title": "Nome Attivit\u00e0"
+    },
+    "services": {
+      "type": "string",
+      "title": "Servizi offerti"
+    },
+    "hours_per_service": {
+      "type": "string",
+      "title": "Ore per servizio"
+    },
+    "working_hours_per_day": {
+      "type": "number",
+      "title": "Ore lavorative al giorno"
+    },
+    "working_days": {
+      "type": "string",
+      "title": "Giorni lavorativi"
+    },
+    "calendar_email": {
+      "type": "string",
+      "title": "Email Google Calendar"
+    },
+    "drive_folder_id": {
+      "type": "string",
+      "title": "ID Cartella Google Drive"
+    },
+    "notification_email": {
+      "type": "string",
+      "title": "Email notifiche prenotazioni"
+    },
+    "phone": {
+      "type": "string",
+      "title": "Numero di telefono"
+    },
+    "website": {
+      "type": "string",
+      "title": "Sito web"
+    },
+    "additional_notes": {
+      "type": "string",
+      "title": "Note aggiuntive"
+    },
+    "llm": {
+      "type": "string",
+      "title": "LLM selezionato"
+    },
+    "tts": {
+      "type": "string",
+      "title": "TTS selezionato"
+    },
+    "telephony": {
+      "type": "string",
+      "title": "Telefonia selezionata"
+    },
+    "minutes": {
+      "type": "number",
+      "title": "Minuti mensili stimati"
+    },
+    "cost_per_minute": {
+      "type": "number",
+      "title": "Costo per minuto (\u20ac)"
+    },
+    "total_monthly_cost": {
+      "type": "number",
+      "title": "Costo mensile totale (\u20ac)"
+    },
+    "accepted_terms": {
+      "type": "boolean",
+      "title": "Termini e Condizioni accettati"
+    },
+    "accepted_marketing": {
+      "type": "boolean",
+      "title": "Consenso Marketing"
+    },
+    "status": {
+      "type": "string",
+      "title": "Stato",
+      "enum": [
+        "nuova",
+        "in_lavorazione",
+        "completata",
+        "annullata"
+      ],
+      "default": "nuova"
+    },
+    "contact_name": {
+      "type": "string",
+      "title": "Nome Contatto"
+    },
+    "contact_email": {
+      "type": "string",
+      "title": "Email Contatto"
+    }
+  },
+  "required": [
+    "business_name",
+    "contact_name",
+    "contact_email",
+    "phone"
+  ]
+}
