@@ -1,8 +1,62 @@
 import React, { useState } from 'react';
 import { api } from '@/api/client';
 import { Info, CheckCircle, ChevronDown, ChevronUp } from 'lucide-react';
+import { loadStripe } from '@stripe/stripe-js';
+import { Elements, PaymentElement, useElements, useStripe } from '@stripe/react-stripe-js';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 const WORKING_DAYS = ['Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato', 'Domenica'];
+
+const stripePublicKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY;
+const stripePromise = stripePublicKey ? loadStripe(stripePublicKey) : null;
+
+function StripeSetupForm({ onSuccess }) {
+  const stripe = useStripe();
+  const elements = useElements();
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+
+    if (!stripe || !elements) return;
+
+    setSubmitting(true);
+    const result = await stripe.confirmSetup({
+      elements,
+      redirect: 'if_required',
+    });
+
+    if (result.error) {
+      setError(result.error.message || 'Si è verificato un errore. Riprova.');
+      setSubmitting(false);
+      return;
+    }
+
+    if (result.setupIntent?.status === 'succeeded' || result.setupIntent?.status === 'processing') {
+      onSuccess(result.setupIntent);
+      return;
+    }
+
+    setError('Si è verificato un errore. Riprova.');
+    setSubmitting(false);
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <PaymentElement />
+      {error && <div className="bg-red-50 border border-red-100 rounded-xl p-3 text-sm text-red-700">{error}</div>}
+      <button
+        type="submit"
+        disabled={!stripe || !elements || submitting}
+        className="w-full py-3 px-6 bg-[#0077b6] hover:bg-[#005f8f] disabled:opacity-60 text-white font-semibold text-sm rounded-xl transition-all"
+      >
+        {submitting ? 'Salvataggio in corso...' : 'Salva metodo di pagamento'}
+      </button>
+    </form>
+  );
+}
 
 export default function AgentRequestForm({ pricingConfig }) {
   const [form, setForm] = useState({
@@ -26,8 +80,17 @@ export default function AgentRequestForm({ pricingConfig }) {
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState('');
   const [showDriveInfo, setShowDriveInfo] = useState(false);
+  const [paymentSetupOpen, setPaymentSetupOpen] = useState(false);
+  const [paymentClientSecret, setPaymentClientSecret] = useState('');
+  const [paymentCustomerId, setPaymentCustomerId] = useState('');
+  const [paymentReady, setPaymentReady] = useState(false);
+  const [paymentSetupIntentId, setPaymentSetupIntentId] = useState('');
+  const [paymentMethodId, setPaymentMethodId] = useState('');
+  const [paymentLoading, setPaymentLoading] = useState(false);
+  const [paymentError, setPaymentError] = useState('');
 
   const set = (field, value) => setForm(prev => ({ ...prev, [field]: value }));
+  const requiresPaymentMethod = Boolean(stripePublicKey);
 
   const toggleDay = (day) => {
     setForm(prev => ({
@@ -47,6 +110,11 @@ export default function AgentRequestForm({ pricingConfig }) {
       return;
     }
 
+    if (requiresPaymentMethod && !paymentReady) {
+      setError('Per assicurarti la demo devi aggiungere un metodo di pagamento (0€). Non verrà addebitato nulla ora.');
+      return;
+    }
+
     setSubmitting(true);
     try {
       const requestData = {
@@ -59,6 +127,9 @@ export default function AgentRequestForm({ pricingConfig }) {
         cost_per_minute: pricingConfig?.pricePerMin || 0,
         total_monthly_cost: pricingConfig?.totalMonthly || 0,
         status: 'nuova',
+        stripe_customer_id: paymentCustomerId || '',
+        stripe_setup_intent_id: paymentSetupIntentId || '',
+        stripe_payment_method_id: paymentMethodId || '',
       };
 
       await api.entities.AgentRequest.create(requestData);
@@ -94,6 +165,58 @@ export default function AgentRequestForm({ pricingConfig }) {
   const inputClass = "w-full px-4 py-3 rounded-xl border border-gray-200 bg-white text-gray-900 text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#0077b6]/20 focus:border-[#0077b6] transition-all";
   const labelClass = "block text-sm font-medium text-gray-700 mb-1.5";
 
+  const openPaymentSetup = async () => {
+    setPaymentError('');
+    setError('');
+
+    if (!stripePromise) {
+      setPaymentError('Pagamento non configurato. Contattaci su WhatsApp.');
+      setPaymentSetupOpen(true);
+      return;
+    }
+
+    if (!form.contact_email) {
+      setPaymentError("Inserisci prima l'email di contatto.");
+      setPaymentSetupOpen(true);
+      return;
+    }
+
+    setPaymentSetupOpen(true);
+    if (paymentClientSecret) return;
+
+    setPaymentLoading(true);
+    try {
+      const res = await fetch('/api/stripe/setup-intent', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: form.contact_email,
+          name: form.contact_name,
+          business_name: form.business_name,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error || 'Errore nel creare il metodo di pagamento.');
+      setPaymentClientSecret(data.clientSecret);
+      setPaymentCustomerId(data.customerId || '');
+    } catch (e) {
+      setPaymentError(e?.message || 'Errore nel creare il metodo di pagamento.');
+    } finally {
+      setPaymentLoading(false);
+    }
+  };
+
+  const handleEmailChange = (value) => {
+    set('contact_email', value);
+    if (paymentReady) {
+      setPaymentReady(false);
+      setPaymentClientSecret('');
+      setPaymentCustomerId('');
+      setPaymentSetupIntentId('');
+      setPaymentMethodId('');
+    }
+  };
+
   if (submitted) {
     return (
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-12 text-center">
@@ -127,7 +250,7 @@ export default function AgentRequestForm({ pricingConfig }) {
               </div>
               <div>
                 <label className={labelClass}>Email di contatto <span className="text-red-400">*</span></label>
-                <input type="email" className={inputClass} placeholder="mario@esempio.it" value={form.contact_email} onChange={e => set('contact_email', e.target.value)} required />
+                <input type="email" className={inputClass} placeholder="mario@esempio.it" value={form.contact_email} onChange={e => handleEmailChange(e.target.value)} required />
               </div>
               <div>
                 <label className={labelClass}>Numero di telefono <span className="text-red-400">*</span></label>
@@ -249,6 +372,27 @@ export default function AgentRequestForm({ pricingConfig }) {
             </div>
           )}
 
+          <div className="bg-gray-50 rounded-xl p-5 border border-gray-100">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div>
+                <p className="text-sm font-semibold text-gray-900">Aggiungi metodo di pagamento (0€)</p>
+                <p className="text-xs text-gray-500 mt-1 leading-relaxed">
+                  Quando clicchi, <span className="font-semibold text-gray-900">NON TI VERRÀ ADDEBITATO ANCORA NULLA</span>. Verrà addebitato solo quello che utilizzerai (minuti dell'agente) quando sarà pubblicato e pronto per essere integrato nella tua attività.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={openPaymentSetup}
+                className="w-full sm:w-auto px-5 py-2.5 bg-white border border-gray-200 hover:border-[#0077b6] text-gray-900 text-sm font-semibold rounded-xl transition-all"
+              >
+                {paymentReady ? 'Metodo salvato ✅' : 'Aggiungi metodo'}
+              </button>
+            </div>
+            {requiresPaymentMethod && !paymentReady && (
+              <p className="text-xs text-gray-400 mt-3">Obbligatorio per assicurarsi la demo.</p>
+            )}
+          </div>
+
           {/* Consents */}
           <div className="space-y-4 pt-2">
             <div className="flex items-start gap-3">
@@ -291,7 +435,7 @@ export default function AgentRequestForm({ pricingConfig }) {
 
           <button
             type="submit"
-            disabled={submitting}
+            disabled={submitting || (requiresPaymentMethod && !paymentReady)}
             className="w-full py-4 px-8 bg-[#0077b6] hover:bg-[#005f8f] disabled:opacity-60 text-white font-semibold text-base rounded-xl transition-all duration-200 shadow-sm hover:shadow-md active:scale-[0.99]"
           >
             {submitting ? (
@@ -302,11 +446,52 @@ export default function AgentRequestForm({ pricingConfig }) {
                 </svg>
                 Invio in corso...
               </span>
-            ) : 'Invia Richiesta →'}
+            ) : (requiresPaymentMethod && !paymentReady ? 'Aggiungi metodo di pagamento per continuare' : 'Invia Richiesta →')}
           </button>
 
-          <p className="text-xs text-gray-400 text-center">Il tuo agente sarà pronto entro 1–2 settimane dalla conferma. Nessun pagamento richiesto ora.</p>
+          <p className="text-xs text-gray-400 text-center">Il tuo agente sarà pronto entro 1–2 settimane dalla conferma. Nessun addebito ora: paghi solo l'utilizzo quando sarà attivo.</p>
         </form>
+
+        <Dialog open={paymentSetupOpen} onOpenChange={setPaymentSetupOpen}>
+          <DialogContent className="max-w-xl">
+            <DialogHeader>
+              <DialogTitle>Aggiungi metodo di pagamento (0€)</DialogTitle>
+              <DialogDescription>
+                <span className="font-semibold">NON TI VERRÀ ADDEBITATO ANCORA NULLA.</span> Verrà addebitato solo quello che utilizzerai (minuti dell'agente) quando sarà pubblicato e pronto per essere integrato nella tua attività.
+              </DialogDescription>
+            </DialogHeader>
+
+            {paymentError && (
+              <div className="bg-red-50 border border-red-100 rounded-xl p-4 text-sm text-red-700">
+                {paymentError}
+              </div>
+            )}
+
+            {paymentLoading && (
+              <div className="text-sm text-gray-600">Caricamento...</div>
+            )}
+
+            {!stripePromise && !paymentLoading && (
+              <div className="text-sm text-gray-600">
+                Pagamento non configurato.
+              </div>
+            )}
+
+            {stripePromise && paymentClientSecret && !paymentLoading && (
+              <Elements stripe={stripePromise} options={{ clientSecret: paymentClientSecret }}>
+                <StripeSetupForm
+                  onSuccess={(setupIntent) => {
+                    setPaymentReady(true);
+                    setPaymentSetupIntentId(setupIntent?.id || '');
+                    setPaymentMethodId(setupIntent?.payment_method || '');
+                    setPaymentCustomerId(setupIntent?.customer || paymentCustomerId || '');
+                    setPaymentSetupOpen(false);
+                  }}
+                />
+              </Elements>
+            )}
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );
