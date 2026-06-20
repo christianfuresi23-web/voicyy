@@ -18,6 +18,7 @@ export default function AdminDashboard() {
   const [showPassword, setShowPassword] = useState(false);
   const [totpCode, setTotpCode] = useState('');
   const [wordInputs, setWordInputs] = useState(Array(12).fill(''));
+  const [wordBulkInput, setWordBulkInput] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [showQR, setShowQR] = useState(false);
@@ -90,8 +91,7 @@ export default function AdminDashboard() {
       sessionStorage.setItem(AUTH_KEY, 'granted');
       setStep(STEP_DASHBOARD);
     } else {
-      const wrongIndices = entered.map((w, i) => w !== correct[i] ? i + 1 : null).filter(Boolean);
-      setError(`Parole errate nelle posizioni: ${wrongIndices.join(', ')}. Verifica l'ordine esatto.`);
+      setError('Le parole sono sbagliate o nell’ordine sbagliato. Riprova.');
     }
   };
 
@@ -101,6 +101,7 @@ export default function AdminDashboard() {
     setPassword('');
     setTotpCode('');
     setWordInputs(Array(12).fill(''));
+    setWordBulkInput('');
     setError('');
   };
 
@@ -228,6 +229,26 @@ export default function AdminDashboard() {
                 <p className="font-medium mb-1">🔐 Frase di sicurezza</p>
                 <p className="text-amber-700">Inserisci le 12 parole segrete nell'ordine esatto (maiuscolo/minuscolo non importa).</p>
               </div>
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-gray-700">Incolla le 12 parole (tutte insieme)</label>
+                <textarea
+                  value={wordBulkInput}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setWordBulkInput(value);
+                    const words = value.trim().split(/[\s,]+/).filter(Boolean).slice(0, 12);
+                    if (words.length > 0) {
+                      const next = Array(12).fill('');
+                      for (let i = 0; i < 12; i++) next[i] = words[i] || '';
+                      setWordInputs(next);
+                    }
+                  }}
+                  rows={2}
+                  className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[#0077b6]/20 focus:border-[#0077b6] resize-none"
+                  placeholder="es. parola1 parola2 parola3 ... parola12"
+                />
+                <p className="text-xs text-gray-400">Verranno distribuite automaticamente nei 12 slot sotto.</p>
+              </div>
               <div className="grid grid-cols-2 gap-3">
                 {wordInputs.map((w, i) => (
                   <div key={i} className="relative">
@@ -236,6 +257,9 @@ export default function AdminDashboard() {
                       type="text"
                       className="w-full pl-8 pr-3 py-2.5 rounded-lg border border-gray-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[#0077b6]/20 focus:border-[#0077b6]"
                       value={w}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') e.preventDefault();
+                      }}
                       onChange={e => { const arr = [...wordInputs]; arr[i] = e.target.value; setWordInputs(arr); }}
                       placeholder={`Parola ${i + 1}`}
                     />
