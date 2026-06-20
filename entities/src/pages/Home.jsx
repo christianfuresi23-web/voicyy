@@ -184,7 +184,7 @@ export default function Home() {
             </div>
             <div className="mt-8 flex justify-center">
               <div className="inline-flex flex-col sm:flex-row items-center gap-2 sm:gap-4 bg-white/5 border border-white/10 rounded-2xl px-6 py-4">
-                <p className="text-white/80 text-sm font-semibold tracking-wide">Con Voicyy risparmi in media</p>
+                <p className="text-4xl font-bold text-[#00b4d8] leading-none">Con Voicyy risparmi in media</p>
                 <p className="text-4xl font-bold text-[#00b4d8] leading-none">€2.100 <span className="text-white/60 text-xl font-normal">al mese</span></p>
               </div>
             </div>
