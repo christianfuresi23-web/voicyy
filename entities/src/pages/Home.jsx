@@ -187,8 +187,8 @@ export default function Home() {
                 <p className="text-white/70 text-sm font-medium tracking-wide">
                   Con Voicyy <span className="text-[#00b4d8] font-bold">risparmi</span> in media
                 </p>
-                <p className="text-4xl font-bold text-[#00b4d8] leading-none">
-                  €2.100 <span className="text-white/60 text-xl font-normal">/m</span>
+                <p className="text-white/70 text-sm font-medium tracking-wide">
+                  <span className="text-[#00b4d8] font-bold">€2.100</span> <span className="text-white/60 font-normal">/m</span>
                 </p>
               </div>
             </div>
