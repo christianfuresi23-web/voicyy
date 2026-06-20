@@ -1,6 +1,7 @@
-const RESEND_API_KEY = import.meta.env.VITE_RESEND_API_KEY || 're_DJFbUu91_46btysm4m9VDHZuGrPRFqfEY';
+const RESEND_API_KEY = import.meta.env.VITE_RESEND_API_KEY;
 
 export async function sendEmail({ to, subject, html }) {
+  if (!RESEND_API_KEY) throw new Error('Missing VITE_RESEND_API_KEY');
   const response = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: {

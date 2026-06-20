@@ -97,7 +97,7 @@ export default function AgentRequestForm({ pricingConfig }) {
     business_name: '',
     services: '',
     hours_per_service: '',
-    working_hours_per_day: '',
+    working_time_slots: [{ start: '', end: '' }],
     working_days: [],
     calendar_email: '',
     drive_folder_id: '',
@@ -110,12 +110,15 @@ export default function AgentRequestForm({ pricingConfig }) {
   });
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [createdRequestId, setCreatedRequestId] = useState('');
   const [error, setError] = useState('');
   const [showDriveInfo, setShowDriveInfo] = useState(false);
   const [paymentSetupOpen, setPaymentSetupOpen] = useState(false);
   const [paymentClientSecret, setPaymentClientSecret] = useState('');
   const [paymentCustomerId, setPaymentCustomerId] = useState('');
   const [paymentReady, setPaymentReady] = useState(false);
+  const [paymentFinalizing, setPaymentFinalizing] = useState(false);
+  const [paymentFinalized, setPaymentFinalized] = useState(false);
   const [paymentSetupIntentId, setPaymentSetupIntentId] = useState('');
   const [paymentMethodId, setPaymentMethodId] = useState('');
   const [stripeSubscriptionId, setStripeSubscriptionId] = useState('');
@@ -125,6 +128,42 @@ export default function AgentRequestForm({ pricingConfig }) {
 
   const set = (field, value) => setForm(prev => ({ ...prev, [field]: value }));
   const requiresPaymentMethod = Boolean(stripePublicKey);
+
+  const parseTimeToMinutes = (value) => {
+    if (!value || typeof value !== 'string') return null;
+    const m = value.match(/^(\d{2}):(\d{2})$/);
+    if (!m) return null;
+    const hh = Number(m[1]);
+    const mm = Number(m[2]);
+    if (!Number.isFinite(hh) || !Number.isFinite(mm)) return null;
+    if (hh < 0 || hh > 23 || mm < 0 || mm > 59) return null;
+    return hh * 60 + mm;
+  };
+
+  const buildWorkingHoursString = (data) => {
+    const slots = Array.isArray(data?.working_time_slots) ? data.working_time_slots : [];
+    return slots
+      .map((s) => (s?.start && s?.end ? `${s.start}–${s.end}` : ''))
+      .filter(Boolean)
+      .join(' / ');
+  };
+
+  const computeWorkingHoursPerDay = (data) => {
+    const slots = Array.isArray(data?.working_time_slots) ? data.working_time_slots : [];
+    if (slots.length === 0) return null;
+
+    let totalMinutes = 0;
+    for (const slot of slots) {
+      const s = parseTimeToMinutes(slot?.start);
+      const e = parseTimeToMinutes(slot?.end);
+      if (s == null || e == null) return null;
+      if (e <= s) return null;
+      totalMinutes += (e - s);
+    }
+
+    const hours = totalMinutes / 60;
+    return Math.round(hours * 100) / 100;
+  };
 
   const toggleDay = (day) => {
     setForm(prev => ({
@@ -157,43 +196,28 @@ export default function AgentRequestForm({ pricingConfig }) {
       return;
     }
 
-    if (requiresPaymentMethod && !paymentReady) {
-      setError('Per assicurarti la demo devi aggiungere un metodo di pagamento (0€). Non verrà addebitato nulla ora.');
+    const workingHoursPerDay = computeWorkingHoursPerDay(form);
+    if (workingHoursPerDay == null) {
+      setError('Inserisci un orario valido: per ogni fascia devi indicare inizio e fine (la fine deve essere dopo l’inizio).');
       return;
     }
 
     setSubmitting(true);
     try {
-      if (requiresPaymentMethod && paymentReady && !stripeSubscriptionItemId) {
-        const pricePerMin = Number(pricingConfig?.pricePerMin || 0);
-        if (!pricePerMin || !Number.isFinite(pricePerMin)) {
-          throw new Error('Seleziona prima una configurazione valida nel calcolatore (costo/minuto).');
-        }
-
-        // #region debug-point A:subscribe-metered-start
-        __dbg('A', 'AgentRequestForm.jsx:handleSubmit', 'subscribe-metered start', { pricePerMin, setupIntentId: paymentSetupIntentId });
-        // #endregion
-        const res = await fetch('/api/stripe/subscribe-metered', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            setup_intent_id: paymentSetupIntentId,
-            price_per_min: pricePerMin,
-            currency: 'eur',
-          }),
-        });
-        const data = await res.json();
-        // #region debug-point A:subscribe-metered-response
-        __dbg('A', 'AgentRequestForm.jsx:handleSubmit', 'subscribe-metered response', { ok: res.ok, status: res.status, data });
-        // #endregion
-        if (!res.ok) throw new Error(data?.error || 'Errore nel collegare la tariffa a Stripe.');
-        setStripeSubscriptionId(data.subscriptionId || '');
-        setStripeSubscriptionItemId(data.subscriptionItemId || '');
-      }
+      setPaymentFinalized(false);
+      setPaymentReady(false);
+      setPaymentSetupIntentId('');
+      setPaymentMethodId('');
+      setPaymentCustomerId('');
+      setStripeSubscriptionId('');
+      setStripeSubscriptionItemId('');
 
       const requestData = {
         ...form,
         working_days: form.working_days.join(', '),
+        working_hours: buildWorkingHoursString(form),
+        working_hours_per_day: workingHoursPerDay,
+        payment_status: requiresPaymentMethod ? 'missing' : 'not_required',
         llm: pricingConfig?.llm || '',
         tts: pricingConfig?.tts || '',
         telephony: pricingConfig?.telephony || '',
@@ -201,11 +225,11 @@ export default function AgentRequestForm({ pricingConfig }) {
         cost_per_minute: pricingConfig?.pricePerMin || 0,
         total_monthly_cost: pricingConfig?.totalMonthly || 0,
         status: 'nuova',
-        stripe_customer_id: paymentCustomerId || '',
-        stripe_setup_intent_id: paymentSetupIntentId || '',
-        stripe_payment_method_id: paymentMethodId || '',
-        stripe_subscription_id: stripeSubscriptionId || '',
-        stripe_subscription_item_id: stripeSubscriptionItemId || '',
+        stripe_customer_id: '',
+        stripe_setup_intent_id: '',
+        stripe_payment_method_id: '',
+        stripe_subscription_id: '',
+        stripe_subscription_item_id: '',
       };
 
       // #region debug-point B:agentrequest-create-start
@@ -217,7 +241,8 @@ export default function AgentRequestForm({ pricingConfig }) {
         total_monthly_cost: requestData.total_monthly_cost,
       });
       // #endregion
-      await api.entities.AgentRequest.create(requestData);
+      const created = await api.entities.AgentRequest.create(requestData);
+      setCreatedRequestId(created?.id || '');
       // #region debug-point B:agentrequest-create-ok
       __dbg('B', 'AgentRequestForm.jsx:handleSubmit', 'AgentRequest.create ok', {});
       // #endregion
@@ -227,12 +252,86 @@ export default function AgentRequestForm({ pricingConfig }) {
         // #region debug-point D:send-admin-email-start
         __dbg('D', 'AgentRequestForm.jsx:SendEmail', 'SendEmail admin start', { to: 'info.voicyy@gmail.com' });
         // #endregion
-        await api.integrations.Core.SendEmail({
-          to: 'info.voicyy@gmail.com',
-          from_name: 'Voicyy',
-          subject: `🔔 Nuova richiesta agente — ${form.business_name}`,
-          body: `Nuova richiesta da ${requestData.contact_name} (${requestData.contact_email}) per ${requestData.business_name}.\nTelefono: ${requestData.phone}\nLLM: ${requestData.llm} | TTS: ${requestData.tts} | Telefonia: ${requestData.telephony}\nMinuti/mese: ${requestData.minutes} | Totale mensile: €${parseFloat(requestData.total_monthly_cost).toFixed(2)}\nServizi: ${requestData.services}\nGiorni: ${requestData.working_days} | Ore/giorno: ${requestData.working_hours_per_day}\nEmail Calendar: ${requestData.calendar_email}\nEmail notifiche: ${requestData.notification_email}\nNote: ${requestData.additional_notes || '—'}\nMarketing: ${requestData.accepted_marketing ? 'Sì' : 'No'}`,
+        const adminEmailRes = await fetch('/api/email/send', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            to: 'info.voicyy@gmail.com',
+            subject: `🔔 Nuova richiesta agente — ${form.business_name}`,
+            html: (() => {
+              const safe = (v) => String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+              const paymentLabel = requestData.payment_status === 'provided'
+                ? 'Pagamento: inserito ✅'
+                : (requestData.payment_status === 'missing' ? 'Pagamento: mancante ⚠️' : 'Pagamento: non richiesto');
+              const paymentBg = requestData.payment_status === 'provided'
+                ? 'background:#f0fdf4;border:1px solid #dcfce7;color:#166534;'
+                : (requestData.payment_status === 'missing' ? 'background:#fff7ed;border:1px solid #ffedd5;color:#9a3412;' : 'background:#f7f7fa;border:1px solid #efeff4;color:#1d1d1f;');
+              return `
+                <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;background:#f5f5f7;padding:24px;">
+                  <div style="max-width:680px;margin:0 auto;background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 8px 28px rgba(0,0,0,0.08);border:1px solid #eef0f3;">
+                    <div style="background:linear-gradient(135deg,#00b4d8,#0077b6);padding:28px 24px;">
+                      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+                        <div>
+                          <div style="color:#e6f8ff;font-size:12px;letter-spacing:0.12em;text-transform:uppercase;">Nuova richiesta</div>
+                          <div style="color:#fff;font-size:20px;font-weight:800;margin-top:6px;">${safe(requestData.business_name)}</div>
+                        </div>
+                        <div style="color:#e6f8ff;font-size:12px;">${safe(new Date().toLocaleString('it-IT'))}</div>
+                      </div>
+                    </div>
+                    <div style="padding:24px;">
+                      <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px;">
+                        <div style="background:#f0fbff;border:1px solid #d9f3ff;color:#0077b6;padding:10px 12px;border-radius:12px;font-size:13px;font-weight:700;">
+                          €${safe(parseFloat(requestData.total_monthly_cost || 0).toFixed(2))}/mese
+                        </div>
+                        <div style="background:#f7f7fa;border:1px solid #efeff4;color:#1d1d1f;padding:10px 12px;border-radius:12px;font-size:13px;font-weight:600;">
+                          ${safe(requestData.minutes?.toLocaleString?.('it-IT') ?? requestData.minutes)} min/mese
+                        </div>
+                        <div style="${paymentBg}padding:10px 12px;border-radius:12px;font-size:13px;font-weight:800;">
+                          ${safe(paymentLabel)}
+                        </div>
+                        <div style="background:#f7f7fa;border:1px solid #efeff4;color:#1d1d1f;padding:10px 12px;border-radius:12px;font-size:13px;font-weight:600;">
+                          ${safe(requestData.llm || '—')} · ${safe(requestData.tts || '—')} · ${safe(requestData.telephony || '—')}
+                        </div>
+                      </div>
+
+                      <div style="display:grid;grid-template-columns:1fr;gap:14px;">
+                        <div style="background:#fafafa;border:1px solid #f0f0f2;border-radius:14px;padding:16px;">
+                          <div style="font-size:12px;color:#86868b;text-transform:uppercase;letter-spacing:0.12em;font-weight:700;">Contatto</div>
+                          <div style="margin-top:10px;font-size:14px;color:#1d1d1f;font-weight:700;">${safe(requestData.contact_name)} — <a href="mailto:${safe(requestData.contact_email)}" style="color:#0077b6;text-decoration:none;">${safe(requestData.contact_email)}</a></div>
+                          <div style="margin-top:6px;font-size:14px;color:#1d1d1f;">Telefono: <a href="tel:${safe(requestData.phone)}" style="color:#1d1d1f;text-decoration:none;">${safe(requestData.phone)}</a></div>
+                          ${requestData.website ? `<div style="margin-top:6px;font-size:14px;color:#1d1d1f;">Sito: <a href="${safe(requestData.website)}" style="color:#0077b6;text-decoration:none;">${safe(requestData.website)}</a></div>` : ''}
+                        </div>
+
+                        <div style="background:#ffffff;border:1px solid #f0f0f2;border-radius:14px;padding:16px;">
+                          <div style="font-size:12px;color:#86868b;text-transform:uppercase;letter-spacing:0.12em;font-weight:700;">Operatività</div>
+                          <div style="margin-top:10px;font-size:14px;color:#1d1d1f;"><strong>Giorni:</strong> ${safe(requestData.working_days || '—')}</div>
+                          <div style="margin-top:6px;font-size:14px;color:#1d1d1f;"><strong>Orari:</strong> ${safe(requestData.working_hours || '—')} (${safe(requestData.working_hours_per_day)}h/giorno)</div>
+                          <div style="margin-top:6px;font-size:14px;color:#1d1d1f;"><strong>Email Calendar:</strong> ${safe(requestData.calendar_email || '—')}</div>
+                          <div style="margin-top:6px;font-size:14px;color:#1d1d1f;"><strong>Drive Folder ID:</strong> ${safe(requestData.drive_folder_id || '—')}</div>
+                          <div style="margin-top:6px;font-size:14px;color:#1d1d1f;"><strong>Email notifiche:</strong> ${safe(requestData.notification_email || '—')}</div>
+                        </div>
+
+                        <div style="background:#ffffff;border:1px solid #f0f0f2;border-radius:14px;padding:16px;">
+                          <div style="font-size:12px;color:#86868b;text-transform:uppercase;letter-spacing:0.12em;font-weight:700;">Servizi</div>
+                          <div style="margin-top:10px;font-size:14px;color:#1d1d1f;white-space:pre-wrap;">${safe(requestData.services || '—')}</div>
+                          ${requestData.hours_per_service ? `<div style="margin-top:10px;font-size:13px;color:#424245;"><strong>Durata per servizio:</strong> ${safe(requestData.hours_per_service)}</div>` : ''}
+                        </div>
+
+                        <div style="background:#fff7ed;border:1px solid #ffedd5;border-radius:14px;padding:16px;">
+                          <div style="font-size:12px;color:#9a3412;text-transform:uppercase;letter-spacing:0.12em;font-weight:800;">Note</div>
+                          <div style="margin-top:10px;font-size:14px;color:#7c2d12;white-space:pre-wrap;">${safe(requestData.additional_notes || '—')}</div>
+                          <div style="margin-top:10px;font-size:13px;color:#7c2d12;"><strong>Consenso marketing:</strong> ${requestData.accepted_marketing ? 'Sì' : 'No'}</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              `;
+            })(),
+          }),
         });
+        const adminEmailData = await adminEmailRes.json().catch(() => ({}));
+        if (!adminEmailRes.ok) throw new Error(adminEmailData?.error || 'Invio email admin fallito');
         // #region debug-point D:send-admin-email-ok
         __dbg('D', 'AgentRequestForm.jsx:SendEmail', 'SendEmail admin ok', {});
         // #endregion
@@ -243,12 +342,71 @@ export default function AgentRequestForm({ pricingConfig }) {
         // #region debug-point D:send-client-email-start
         __dbg('D', 'AgentRequestForm.jsx:SendEmail', 'SendEmail client start', { to: form.contact_email });
         // #endregion
-        await api.integrations.Core.SendEmail({
-          to: form.contact_email,
-          from_name: 'Voicyy',
-          subject: '✅ Richiesta ricevuta — Voicyy AI Agent',
-          body: `Ciao ${requestData.contact_name},\n\nabbiamo ricevuto la tua richiesta per ${requestData.business_name}.\n\nConfigurazione selezionata:\n- LLM: ${requestData.llm || '—'}\n- Voce TTS: ${requestData.tts || '—'}\n- Telefonia: ${requestData.telephony || '—'}\n- Minuti/mese: ${requestData.minutes || '—'}\n- Costo stimato/min: €${parseFloat(requestData.cost_per_minute || 0).toFixed(4)}\n- Totale mensile stimato: €${parseFloat(requestData.total_monthly_cost || 0).toFixed(2)}\n\nIl tuo agente sarà pronto entro 1–2 settimane. Ti contatteremo presto per iniziare la configurazione personalizzata.\n\nPer qualsiasi domanda: info.voicyy@gmail.com\n\n© 2025 Voicyy — AI Voice Agents`,
+        const clientEmailRes = await fetch('/api/email/send', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            to: form.contact_email,
+            subject: '✅ Richiesta ricevuta — Voicyy AI Agent',
+            html: (() => {
+              const safe = (v) => String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+              const hasPayment = requestData.payment_status === 'provided';
+              return `
+                <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;background:#f5f5f7;padding:24px;">
+                  <div style="max-width:680px;margin:0 auto;background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 8px 28px rgba(0,0,0,0.08);border:1px solid #eef0f3;">
+                    <div style="background:linear-gradient(135deg,#00b4d8,#0077b6);padding:32px 24px;text-align:center;">
+                      <div style="color:rgba(255,255,255,0.9);font-size:12px;letter-spacing:0.12em;text-transform:uppercase;">Voicyy</div>
+                      <h1 style="color:#fff;margin:10px 0 0;font-size:22px;font-weight:900;">Richiesta inviata con successo</h1>
+                      <p style="color:rgba(255,255,255,0.9);margin:10px 0 0;font-size:14px;">Se stai leggendo questa email, l’invio è andato a buon fine.</p>
+                    </div>
+                    <div style="padding:24px;">
+                      <p style="margin:0;color:#1d1d1f;font-size:15px;line-height:1.6;">
+                        Ciao <strong>${safe(requestData.contact_name)}</strong>, abbiamo ricevuto la tua richiesta per <strong>${safe(requestData.business_name)}</strong>.
+                      </p>
+
+                      <div style="display:flex;gap:12px;flex-wrap:wrap;margin:16px 0 0;">
+                        <div style="background:#ecfeff;border:1px solid #cffafe;color:#0e7490;padding:10px 12px;border-radius:12px;font-size:13px;font-weight:800;">Stato: Ricevuta ✅</div>
+                        <div style="background:#f7f7fa;border:1px solid #efeff4;color:#1d1d1f;padding:10px 12px;border-radius:12px;font-size:13px;font-weight:700;">${safe(requestData.minutes || '—')} min/mese</div>
+                        <div style="background:#f7f7fa;border:1px solid #efeff4;color:#1d1d1f;padding:10px 12px;border-radius:12px;font-size:13px;font-weight:700;">Totale stimato: €${safe(parseFloat(requestData.total_monthly_cost || 0).toFixed(2))}/mese</div>
+                      </div>
+
+                      <div style="margin-top:18px;background:#fafafa;border:1px solid #f0f0f2;border-radius:14px;padding:16px;">
+                        <div style="font-size:12px;color:#86868b;text-transform:uppercase;letter-spacing:0.12em;font-weight:800;">Riepilogo</div>
+                        <div style="margin-top:10px;font-size:14px;color:#1d1d1f;"><strong>Configurazione:</strong> ${safe(requestData.llm || '—')} · ${safe(requestData.tts || '—')} · ${safe(requestData.telephony || '—')}</div>
+                        <div style="margin-top:8px;font-size:14px;color:#1d1d1f;"><strong>Giorni lavorativi:</strong> ${safe(requestData.working_days || '—')}</div>
+                        <div style="margin-top:8px;font-size:14px;color:#1d1d1f;"><strong>Orari:</strong> ${safe(requestData.working_hours || '—')} (${safe(requestData.working_hours_per_day)}h/giorno)</div>
+                        <div style="margin-top:8px;font-size:14px;color:#1d1d1f;"><strong>Email notifiche:</strong> ${safe(requestData.notification_email || '—')}</div>
+                      </div>
+
+                      <div style="margin-top:18px;background:${hasPayment ? '#f0fdf4' : '#fff7ed'};border:1px solid ${hasPayment ? '#dcfce7' : '#ffedd5'};border-radius:14px;padding:16px;">
+                        <div style="font-size:12px;color:${hasPayment ? '#166534' : '#9a3412'};text-transform:uppercase;letter-spacing:0.12em;font-weight:900;">Pagamento</div>
+                        <div style="margin-top:10px;font-size:14px;color:${hasPayment ? '#166534' : '#9a3412'};line-height:1.6;">
+                          ${hasPayment ? 'Metodo di pagamento salvato correttamente (0€ ora). ✅' : 'Ultimo passo: aggiungi un metodo di pagamento (0€ ora) per assicurarti la demo. Se non lo inserisci subito, ti contatteremo comunque.'}
+                        </div>
+                      </div>
+
+                      <div style="margin-top:18px;background:#eef2ff;border:1px solid #e0e7ff;border-radius:14px;padding:16px;">
+                        <div style="font-size:12px;color:#3730a3;text-transform:uppercase;letter-spacing:0.12em;font-weight:900;">Prossimi passi</div>
+                        <div style="margin-top:10px;font-size:14px;color:#312e81;line-height:1.6;">
+                          Ti contatteremo a breve per iniziare la configurazione personalizzata. Se vuoi aggiungere dettagli, rispondi a questa email.
+                        </div>
+                      </div>
+
+                      <p style="margin:18px 0 0;color:#86868b;font-size:12px;line-height:1.6;">
+                        Supporto: <a href="mailto:info.voicyy@gmail.com" style="color:#0077b6;text-decoration:none;">info.voicyy@gmail.com</a>
+                      </p>
+                    </div>
+                    <div style="background:#f5f5f7;padding:18px 24px;text-align:center;border-top:1px solid #e5e7eb;">
+                      <p style="color:#9ca3af;font-size:12px;margin:0;">© 2026 Voicyy — AI Voice Agents</p>
+                    </div>
+                  </div>
+                </div>
+              `;
+            })(),
+          }),
         });
+        const clientEmailData = await clientEmailRes.json().catch(() => ({}));
+        if (!clientEmailRes.ok) throw new Error(clientEmailData?.error || 'Invio email cliente fallito');
         // #region debug-point D:send-client-email-ok
         __dbg('D', 'AgentRequestForm.jsx:SendEmail', 'SendEmail client ok', {});
         // #endregion
@@ -326,6 +484,77 @@ export default function AgentRequestForm({ pricingConfig }) {
     }
   };
 
+  const setTimeSlot = (index, field, value) => {
+    setForm(prev => {
+      const slots = Array.isArray(prev.working_time_slots) ? prev.working_time_slots : [];
+      const nextSlots = slots.map((s, i) => (i === index ? { ...s, [field]: value } : s));
+      return { ...prev, working_time_slots: nextSlots };
+    });
+  };
+
+  const addTimeSlot = () => {
+    setForm(prev => {
+      const slots = Array.isArray(prev.working_time_slots) ? prev.working_time_slots : [];
+      return { ...prev, working_time_slots: [...slots, { start: '', end: '' }] };
+    });
+  };
+
+  const removeTimeSlot = (index) => {
+    setForm(prev => {
+      const slots = Array.isArray(prev.working_time_slots) ? prev.working_time_slots : [];
+      const next = slots.filter((_, i) => i !== index);
+      return { ...prev, working_time_slots: next.length ? next : [{ start: '', end: '' }] };
+    });
+  };
+
+  const finalizePaymentForRequest = async ({ setupIntentId, customerId, paymentMethodId: pmId }) => {
+    if (!createdRequestId) {
+      setPaymentError('Richiesta non trovata. Reinvia il modulo oppure contattaci su WhatsApp.');
+      return;
+    }
+    const pricePerMin = Number(pricingConfig?.pricePerMin || 0);
+    if (!pricePerMin || !Number.isFinite(pricePerMin)) {
+      setPaymentError('Seleziona prima una configurazione valida nel calcolatore (costo/minuto), poi riprova ad aggiungere il metodo di pagamento.');
+      return;
+    }
+
+    setPaymentError('');
+    setPaymentFinalizing(true);
+    try {
+      const res = await fetch('/api/stripe/subscribe-metered', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          setup_intent_id: setupIntentId,
+          price_per_min: pricePerMin,
+          currency: 'eur',
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data?.error || 'Errore nel collegare la tariffa a Stripe.');
+
+      const patch = {
+        payment_status: 'provided',
+        stripe_customer_id: customerId || '',
+        stripe_setup_intent_id: setupIntentId || '',
+        stripe_payment_method_id: pmId || '',
+        stripe_subscription_id: data.subscriptionId || '',
+        stripe_subscription_item_id: data.subscriptionItemId || '',
+      };
+      await api.entities.AgentRequest.update(createdRequestId, patch);
+
+      setPaymentReady(true);
+      setPaymentFinalized(true);
+      setStripeSubscriptionId(patch.stripe_subscription_id);
+      setStripeSubscriptionItemId(patch.stripe_subscription_item_id);
+      setPaymentSetupOpen(false);
+    } catch (e) {
+      setPaymentError(e?.message || 'Errore nel salvare il metodo di pagamento.');
+    } finally {
+      setPaymentFinalizing(false);
+    }
+  };
+
   if (submitted) {
     return (
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-12 text-center">
@@ -334,10 +563,30 @@ export default function AgentRequestForm({ pricingConfig }) {
         </div>
         <h3 className="text-2xl font-semibold text-gray-900 mb-3">Richiesta inviata con successo!</h3>
         <p className="text-gray-500 text-base max-w-md mx-auto leading-relaxed">
-          Abbiamo ricevuto la tua richiesta per <strong className="text-gray-900">{form.business_name}</strong>. 
-          Ti contatteremo entro <strong className="text-gray-900">1–2 giorni lavorativi</strong> per avviare la configurazione del tuo agente AI.
+          Abbiamo ricevuto la tua richiesta per <strong className="text-gray-900">{form.business_name}</strong>.
+          Ti contatteremo entro <strong className="text-gray-900">1–2 giorni lavorativi</strong>.
         </p>
-        <p className="text-gray-400 text-sm mt-4">Controlla la tua email per il riepilogo — potrebbe trovarsi nella cartella spam.</p>
+
+        {requiresPaymentMethod && (
+          <div className={`mt-8 rounded-2xl border p-6 text-left ${paymentFinalized ? 'bg-green-50 border-green-100' : 'bg-amber-50 border-amber-100'}`}>
+            <p className="text-sm font-semibold text-gray-900">Ultimo passo</p>
+            <p className="text-sm text-gray-700 mt-1 leading-relaxed">
+              {paymentFinalized
+                ? 'Metodo di pagamento salvato correttamente (0€ ora). ✅'
+                : 'Inserisci un metodo di pagamento (0€) per assicurarti la demo. Se non lo inserisci subito, la richiesta resta valida e ti contatteremo comunque.'}
+            </p>
+            <button
+              type="button"
+              onClick={openPaymentSetup}
+              disabled={paymentFinalized || paymentFinalizing}
+              className="mt-4 w-full py-3 px-6 bg-[#0077b6] hover:bg-[#005f8f] disabled:opacity-60 text-white font-semibold text-sm rounded-xl transition-all"
+            >
+              {paymentFinalized ? 'Metodo inserito ✅' : (paymentFinalizing ? 'Salvataggio in corso...' : 'Inserisci metodo di pagamento')}
+            </button>
+          </div>
+        )}
+
+        <p className="text-gray-400 text-sm mt-6">Controlla la tua email per il riepilogo — potrebbe trovarsi nella cartella spam.</p>
       </div>
     );
   }
@@ -392,8 +641,54 @@ export default function AgentRequestForm({ pricingConfig }) {
                   <input type="text" className={inputClass} placeholder="Es. Visita 1h, Pulizia 0.5h" value={form.hours_per_service} onChange={e => set('hours_per_service', e.target.value)} />
                 </div>
                 <div>
-                  <label className={labelClass}>Ore lavorative al giorno</label>
-                  <input type="number" min="1" max="24" className={inputClass} placeholder="8" value={form.working_hours_per_day} onChange={e => set('working_hours_per_day', e.target.value)} />
+                  <label className={labelClass}>Orari di lavoro <span className="text-red-400">*</span></label>
+                  <div className="space-y-3">
+                    {(Array.isArray(form.working_time_slots) ? form.working_time_slots : [{ start: '', end: '' }]).map((slot, idx) => (
+                      <div key={idx} className="rounded-xl border border-gray-200 bg-white p-3">
+                        <div className="flex items-center justify-between gap-3 mb-2">
+                          <p className="text-xs font-semibold text-gray-500">Fascia {idx + 1}</p>
+                          {idx > 0 && (
+                            <button
+                              type="button"
+                              onClick={() => removeTimeSlot(idx)}
+                              className="text-xs font-semibold text-red-600 hover:text-red-700"
+                            >
+                              Rimuovi
+                            </button>
+                          )}
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <p className="text-xs text-gray-400 mb-1.5">Inizio</p>
+                            <input
+                              type="time"
+                              className={inputClass}
+                              value={slot?.start || ''}
+                              onChange={e => setTimeSlot(idx, 'start', e.target.value)}
+                              required
+                            />
+                          </div>
+                          <div>
+                            <p className="text-xs text-gray-400 mb-1.5">Fine</p>
+                            <input
+                              type="time"
+                              className={inputClass}
+                              value={slot?.end || ''}
+                              onChange={e => setTimeSlot(idx, 'end', e.target.value)}
+                              required
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                    <button
+                      type="button"
+                      onClick={addTimeSlot}
+                      className="w-full px-4 py-2.5 rounded-xl text-sm font-semibold transition-all border bg-white text-gray-700 border-gray-200 hover:border-[#0077b6]"
+                    >
+                      Aggiungi fascia oraria (pausa pranzo)
+                    </button>
+                  </div>
                 </div>
               </div>
 
@@ -481,27 +776,6 @@ export default function AgentRequestForm({ pricingConfig }) {
             </div>
           )}
 
-          <div className="bg-gray-50 rounded-xl p-5 border border-gray-100">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-              <div>
-                <p className="text-sm font-semibold text-gray-900">Aggiungi metodo di pagamento (0€)</p>
-                <p className="text-xs text-gray-500 mt-1 leading-relaxed">
-                  Quando clicchi, <span className="font-semibold text-gray-900">NON TI VERRÀ ADDEBITATO ANCORA NULLA</span>. Verrà addebitato solo quello che utilizzerai (minuti dell'agente) quando sarà pubblicato e pronto per essere integrato nella tua attività.
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={openPaymentSetup}
-                className="w-full sm:w-auto px-5 py-2.5 bg-white border border-gray-200 hover:border-[#0077b6] text-gray-900 text-sm font-semibold rounded-xl transition-all"
-              >
-                {paymentReady ? 'Metodo salvato ✅' : 'Aggiungi metodo'}
-              </button>
-            </div>
-            {requiresPaymentMethod && !paymentReady && (
-              <p className="text-xs text-gray-400 mt-3">Obbligatorio per assicurarsi la demo.</p>
-            )}
-          </div>
-
           {/* Consents */}
           <div className="space-y-4 pt-2">
             <div className="flex items-start gap-3">
@@ -544,7 +818,7 @@ export default function AgentRequestForm({ pricingConfig }) {
 
           <button
             type="submit"
-            disabled={submitting || (requiresPaymentMethod && !paymentReady)}
+            disabled={submitting}
             className="w-full py-4 px-8 bg-[#0077b6] hover:bg-[#005f8f] disabled:opacity-60 text-white font-semibold text-base rounded-xl transition-all duration-200 shadow-sm hover:shadow-md active:scale-[0.99]"
           >
             {submitting ? (
@@ -555,7 +829,7 @@ export default function AgentRequestForm({ pricingConfig }) {
                 </svg>
                 Invio in corso...
               </span>
-            ) : (requiresPaymentMethod && !paymentReady ? 'Aggiungi metodo di pagamento per continuare' : 'Invia Richiesta →')}
+            ) : 'Invia Richiesta →'}
           </button>
 
           <p className="text-xs text-gray-400 text-center">Il tuo agente sarà pronto entro 1–2 settimane dalla conferma. Nessun addebito ora: paghi solo l'utilizzo quando sarà attivo.</p>
@@ -580,6 +854,10 @@ export default function AgentRequestForm({ pricingConfig }) {
               <div className="text-sm text-gray-600">Caricamento...</div>
             )}
 
+            {paymentFinalizing && (
+              <div className="text-sm text-gray-600">Collegamento in corso...</div>
+            )}
+
             {!stripePromise && !paymentLoading && (
               <div className="text-sm text-gray-600">
                 Pagamento non configurato.
@@ -590,11 +868,13 @@ export default function AgentRequestForm({ pricingConfig }) {
               <Elements stripe={stripePromise} options={{ clientSecret: paymentClientSecret }}>
                 <StripeSetupForm
                   onSuccess={(setupIntent) => {
-                    setPaymentReady(true);
-                    setPaymentSetupIntentId(setupIntent?.id || '');
-                    setPaymentMethodId(setupIntent?.payment_method || '');
-                    setPaymentCustomerId(setupIntent?.customer || paymentCustomerId || '');
-                    setPaymentSetupOpen(false);
+                    const setupIntentId = setupIntent?.id || '';
+                    const customerId = setupIntent?.customer || paymentCustomerId || '';
+                    const pmId = setupIntent?.payment_method || '';
+                    setPaymentSetupIntentId(setupIntentId);
+                    setPaymentMethodId(pmId);
+                    setPaymentCustomerId(customerId);
+                    void finalizePaymentForRequest({ setupIntentId, customerId, paymentMethodId: pmId });
                   }}
                 />
               </Elements>

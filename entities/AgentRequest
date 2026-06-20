@@ -18,6 +18,21 @@
       "type": "number",
       "title": "Ore lavorative al giorno"
     },
+    "working_hours": {
+      "type": "string",
+      "title": "Orari di lavoro"
+    },
+    "working_time_slots": {
+      "type": "array",
+      "title": "Fasce orarie",
+      "items": {
+        "type": "object",
+        "properties": {
+          "start": { "type": "string", "title": "Inizio" },
+          "end": { "type": "string", "title": "Fine" }
+        }
+      }
+    },
     "working_days": {
       "type": "string",
       "title": "Giorni lavorativi"
@@ -77,6 +92,15 @@
     "accepted_marketing": {
       "type": "boolean",
       "title": "Consenso Marketing"
+    },
+    "payment_status": {
+      "type": "string",
+      "title": "Stato pagamento",
+      "enum": [
+        "missing",
+        "provided",
+        "not_required"
+      ]
     },
     "status": {
       "type": "string",

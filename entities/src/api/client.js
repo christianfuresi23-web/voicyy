@@ -30,6 +30,45 @@ const ensureAuthed = () => {
 
 const nowIso = () => new Date().toISOString();
 
+let backendState = null;
+
+const backendFetchJson = async (path, options = {}) => {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 8000);
+  try {
+    const res = await fetch(path, {
+      ...options,
+      headers: {
+        "Content-Type": "application/json",
+        ...(options.headers || {}),
+      },
+      signal: controller.signal,
+    });
+    const data = await res.json().catch(() => null);
+    if (!res.ok) {
+      const err = new Error((data && data.error) || "Request failed");
+      err.status = res.status;
+      err.details = data || null;
+      throw err;
+    }
+    return data;
+  } finally {
+    clearTimeout(timeoutId);
+  }
+};
+
+const tryBackend = async (fn) => {
+  if (backendState === false) throw new Error("Backend disabled");
+  try {
+    const result = await fn();
+    backendState = true;
+    return result;
+  } catch (e) {
+    if (backendState == null) backendState = false;
+    throw e;
+  }
+};
+
 export const api = {
   auth: {
     async me() {
@@ -93,23 +132,46 @@ export const api = {
   entities: {
     AgentRequest: {
       async create(data) {
-        const list = getJson(STORAGE_KEYS.agentRequests, []);
-        const item = { id: crypto.randomUUID(), created_date: nowIso(), ...data };
-        list.unshift(item);
-        setJson(STORAGE_KEYS.agentRequests, list);
-        return item;
+        try {
+          return await tryBackend(() =>
+            backendFetchJson("/api/agent-requests", {
+              method: "POST",
+              body: JSON.stringify(data),
+            })
+          );
+        } catch {
+          const list = getJson(STORAGE_KEYS.agentRequests, []);
+          const item = { id: crypto.randomUUID(), created_date: nowIso(), ...data };
+          list.unshift(item);
+          setJson(STORAGE_KEYS.agentRequests, list);
+          return item;
+        }
       },
       async list(_sort = '-created_date', limit = 100) {
-        const list = getJson(STORAGE_KEYS.agentRequests, []);
-        return list.slice(0, limit);
+        try {
+          const lim = Math.max(1, Math.min(200, Number(limit || 100)));
+          return await tryBackend(() => backendFetchJson(`/api/agent-requests?limit=${encodeURIComponent(lim)}`, { method: "GET" }));
+        } catch {
+          const list = getJson(STORAGE_KEYS.agentRequests, []);
+          return list.slice(0, limit);
+        }
       },
       async update(id, patch) {
-        const list = getJson(STORAGE_KEYS.agentRequests, []);
-        const idx = list.findIndex((x) => x.id === id);
-        if (idx === -1) return null;
-        list[idx] = { ...list[idx], ...patch };
-        setJson(STORAGE_KEYS.agentRequests, list);
-        return list[idx];
+        try {
+          return await tryBackend(() =>
+            backendFetchJson(`/api/agent-requests/${encodeURIComponent(id)}`, {
+              method: "PATCH",
+              body: JSON.stringify(patch),
+            })
+          );
+        } catch {
+          const list = getJson(STORAGE_KEYS.agentRequests, []);
+          const idx = list.findIndex((x) => x.id === id);
+          if (idx === -1) return null;
+          list[idx] = { ...list[idx], ...patch };
+          setJson(STORAGE_KEYS.agentRequests, list);
+          return list[idx];
+        }
       },
     },
   },
@@ -121,4 +183,3 @@ export const api = {
     },
   },
 };
-

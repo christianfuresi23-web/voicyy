@@ -351,6 +351,11 @@ export default function AdminDashboard() {
                         <span className={`px-2.5 py-0.5 text-xs font-medium rounded-full border ${statusColors[req.status] || 'bg-gray-50 text-gray-600 border-gray-100'}`}>
                           {statusLabels[req.status] || req.status}
                         </span>
+                        {req.payment_status === 'missing' && (
+                          <span className="px-2.5 py-0.5 text-xs font-semibold rounded-full border bg-amber-50 text-amber-800 border-amber-100">
+                            Pagamento mancante
+                          </span>
+                        )}
                       </div>
                       <div className="flex items-center gap-4 mt-1 flex-wrap">
                         <span className="text-sm text-gray-500 flex items-center gap-1.5">
@@ -379,11 +384,18 @@ export default function AdminDashboard() {
                         <DetailRow label="Sito web" value={req.website || '—'} />
                         <DetailRow label="Servizi" value={req.services} />
                         <DetailRow label="Ore/servizio" value={req.hours_per_service} />
-                        <DetailRow label="Ore/giorno" value={`${req.working_hours_per_day}h`} />
+                        <DetailRow
+                          label="Orari"
+                          value={req.working_hours ? `${req.working_hours} (${req.working_hours_per_day}h/giorno)` : (req.working_hours_per_day ? `${req.working_hours_per_day}h/giorno` : '—')}
+                        />
                         <DetailRow label="Giorni" value={req.working_days} />
                         <DetailRow label="Email Calendar" value={req.calendar_email} />
                         <DetailRow label="Drive Folder ID" value={req.drive_folder_id || '—'} />
                         <DetailRow label="Email notifiche" value={req.notification_email} />
+                        <DetailRow
+                          label="Pagamento"
+                          value={req.payment_status === 'provided' ? '✅ Metodo inserito' : (req.payment_status === 'missing' ? '⚠️ Mancante' : '—')}
+                        />
                       </div>
                       <div className="space-y-4">
                         <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Configurazione AI</h4>
