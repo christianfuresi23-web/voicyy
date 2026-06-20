@@ -2,9 +2,9 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { llmOptions, ttsOptions, telephonyOptions, getPricePerMinute } from '@/data/pricingData';
 
 export default function PricingCalculator({ onConfigChange }) {
-  const [selectedLLM, setSelectedLLM] = useState('GPT 4.1');
-  const [selectedTTS, setSelectedTTS] = useState('Platform Voices');
-  const [selectedTelephony, setSelectedTelephony] = useState('Custom Telephony');
+  const [selectedLLM, setSelectedLLM] = useState('Claude 4.6 sonnet');
+  const [selectedTTS, setSelectedTTS] = useState('Elevenlabs Voices');
+  const [selectedTelephony, setSelectedTelephony] = useState('Twilio/Telnyx');
   const [minutes, setMinutes] = useState(1200);
 
   const pricePerMin = useMemo(() => {
@@ -24,6 +24,19 @@ export default function PricingCalculator({ onConfigChange }) {
   const btnBase = "px-3 py-1.5 rounded-full text-sm font-medium transition-all duration-150 cursor-pointer border";
   const btnActive = "bg-[#0077b6] text-white border-[#0077b6] shadow-sm";
   const btnInactive = "bg-white text-[#0077b6] border-[#c8e6f0] hover:border-[#0077b6] hover:bg-[#f0f8ff]";
+  const recommendedRing = "border-[#d4af37] ring-1 ring-[#d4af37]/50";
+  const recommendedPill = "ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wide border border-[#d4af37] text-[#8a6a10] bg-[#fff6d6]";
+
+  const recommended = {
+    llm: 'Claude 4.6 sonnet',
+    tts: 'Elevenlabs Voices',
+    telephony: 'Twilio/Telnyx',
+  };
+
+  const optionClass = (isSelected, isRecommended) => {
+    const base = `${btnBase} ${isSelected ? btnActive : btnInactive}`;
+    return isRecommended ? `${base} ${recommendedRing}` : base;
+  };
 
   const formatMinutes = (v) => {
     if (v >= 1000) return `${(v / 1000).toFixed(v % 1000 === 0 ? 0 : 1)}k`;
@@ -75,9 +88,10 @@ export default function PricingCalculator({ onConfigChange }) {
                     <button
                       key={opt}
                       onClick={() => setSelectedLLM(opt)}
-                      className={`${btnBase} ${selectedLLM === opt ? btnActive : btnInactive}`}
+                      className={optionClass(selectedLLM === opt, opt === recommended.llm)}
                     >
                       {opt}
+                      {opt === recommended.llm && <span className={recommendedPill}>Consigliato</span>}
                     </button>
                   ))}
                 </div>
@@ -91,9 +105,10 @@ export default function PricingCalculator({ onConfigChange }) {
                     <button
                       key={opt}
                       onClick={() => setSelectedTTS(opt)}
-                      className={`${btnBase} ${selectedTTS === opt ? btnActive : btnInactive}`}
+                      className={optionClass(selectedTTS === opt, opt === recommended.tts)}
                     >
                       {opt}
+                      {opt === recommended.tts && <span className={recommendedPill}>Consigliato</span>}
                     </button>
                   ))}
                 </div>
@@ -107,9 +122,10 @@ export default function PricingCalculator({ onConfigChange }) {
                     <button
                       key={opt}
                       onClick={() => setSelectedTelephony(opt)}
-                      className={`${btnBase} ${selectedTelephony === opt ? btnActive : btnInactive}`}
+                      className={optionClass(selectedTelephony === opt, opt === recommended.telephony)}
                     >
                       {opt}
+                      {opt === recommended.telephony && <span className={recommendedPill}>Consigliato</span>}
                     </button>
                   ))}
                 </div>
