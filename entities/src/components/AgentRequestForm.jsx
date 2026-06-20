@@ -86,6 +86,8 @@ export default function AgentRequestForm({ pricingConfig }) {
   const [paymentReady, setPaymentReady] = useState(false);
   const [paymentSetupIntentId, setPaymentSetupIntentId] = useState('');
   const [paymentMethodId, setPaymentMethodId] = useState('');
+  const [stripeSubscriptionId, setStripeSubscriptionId] = useState('');
+  const [stripeSubscriptionItemId, setStripeSubscriptionItemId] = useState('');
   const [paymentLoading, setPaymentLoading] = useState(false);
   const [paymentError, setPaymentError] = useState('');
 
@@ -117,6 +119,27 @@ export default function AgentRequestForm({ pricingConfig }) {
 
     setSubmitting(true);
     try {
+      if (requiresPaymentMethod && paymentReady && !stripeSubscriptionItemId) {
+        const pricePerMin = Number(pricingConfig?.pricePerMin || 0);
+        if (!pricePerMin || !Number.isFinite(pricePerMin)) {
+          throw new Error('Seleziona prima una configurazione valida nel calcolatore (costo/minuto).');
+        }
+
+        const res = await fetch('/api/stripe/subscribe-metered', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            setup_intent_id: paymentSetupIntentId,
+            price_per_min: pricePerMin,
+            currency: 'eur',
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data?.error || 'Errore nel collegare la tariffa a Stripe.');
+        setStripeSubscriptionId(data.subscriptionId || '');
+        setStripeSubscriptionItemId(data.subscriptionItemId || '');
+      }
+
       const requestData = {
         ...form,
         working_days: form.working_days.join(', '),
@@ -130,6 +153,8 @@ export default function AgentRequestForm({ pricingConfig }) {
         stripe_customer_id: paymentCustomerId || '',
         stripe_setup_intent_id: paymentSetupIntentId || '',
         stripe_payment_method_id: paymentMethodId || '',
+        stripe_subscription_id: stripeSubscriptionId || '',
+        stripe_subscription_item_id: stripeSubscriptionItemId || '',
       };
 
       await api.entities.AgentRequest.create(requestData);
@@ -170,7 +195,7 @@ export default function AgentRequestForm({ pricingConfig }) {
     setError('');
 
     if (!stripePromise) {
-      setPaymentError('Pagamento non configurato. Contattaci su WhatsApp.');
+      setPaymentError("Pagamento non configurato: manca la chiave pubblica Stripe nel sito. Su Vercel deve chiamarsi esattamente VITE_STRIPE_PUBLISHABLE_KEY ed essere impostata su Production, poi devi rifare un redeploy.");
       setPaymentSetupOpen(true);
       return;
     }
@@ -214,6 +239,8 @@ export default function AgentRequestForm({ pricingConfig }) {
       setPaymentCustomerId('');
       setPaymentSetupIntentId('');
       setPaymentMethodId('');
+      setStripeSubscriptionId('');
+      setStripeSubscriptionItemId('');
     }
   };
 
