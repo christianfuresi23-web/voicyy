@@ -4,6 +4,7 @@ import { Phone, Users, TrendingDown, Calendar, Zap, Star, ArrowRight } from 'luc
 import VoicyyLogo from '../components/VoicyyLogo';
 import PricingCalculator from '../components/PricingCalculator';
 import AgentRequestForm from '../components/AgentRequestForm';
+import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
 
 const WHATSAPP_NUMBER = '393921143643';
 const WHATSAPP_URL = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent('Ciao! Vorrei saperne di più sugli agenti AI Voicyy per la mia attività.')}`;
@@ -179,48 +180,92 @@ export default function Home() {
             <p className="text-lg text-gray-500 max-w-xl mx-auto">Risultati reali da attività reali che hanno scelto Voicyy.</p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {[
-              {
-                quote: "Prima perdevo almeno 15 chiamate al giorno perché ero in studio con i pazienti. Ora ogni chiamata riceve risposta immediata e il calendario si aggiorna da solo.",
-                name: "Dott. Marco Ferri",
-                role: "Studio Dentistico Ferri, Milano",
-                saving: "€2.100/mese risparmiati",
-                stars: 5
-              },
-              {
-                quote: "I miei clienti si prenotano anche alle 22:00 di domenica. L'agente gestisce tutto, io trovo il calendario pieno il lunedì mattina senza aver fatto nulla.",
-                name: "Giulia Pavan",
-                role: "Centro Estetico Aura, Roma",
-                saving: "Zero chiamate perse",
-                stars: 5
-              },
-              {
-                quote: "Avevo paura che i clienti non accettassero un'AI, invece quasi nessuno se ne accorge. La voce è naturale e risponde a tutte le domande sui nostri servizi.",
-                name: "Lorenzo Bianchi",
-                role: "Studio Fisioterapico, Torino",
-                saving: "30 chiamate gestite/giorno",
-                stars: 5
-              }
-            ].map((t, i) => (
-              <div key={i} className="bg-white rounded-2xl p-8 border border-gray-100 flex flex-col">
-                <div className="flex gap-1 mb-5">
-                  {Array.from({ length: t.stars }).map((_, j) => (
-                    <Star key={j} className="w-4 h-4 fill-amber-400 text-amber-400" />
-                  ))}
-                </div>
-                <p className="text-gray-700 text-sm leading-relaxed mb-6 flex-1">"{t.quote}"</p>
-                <div className="border-t border-gray-100 pt-5">
-                  <p className="font-semibold text-gray-900 text-sm">{t.name}</p>
-                  <p className="text-gray-400 text-xs mt-0.5">{t.role}</p>
-                  <div className="mt-3 inline-flex items-center gap-1.5 px-3 py-1 bg-green-50 rounded-full">
-                    <TrendingDown className="w-3 h-3 text-green-600" />
-                    <span className="text-xs font-medium text-green-700">{t.saving}</span>
+          <Carousel
+            opts={{ loop: true, align: "start" }}
+            className="relative"
+          >
+            <CarouselContent className="cursor-grab active:cursor-grabbing -ml-4">
+              {[
+                {
+                  quote: "Prima perdevo almeno 15 chiamate al giorno perché ero in studio con i pazienti. Ora ogni chiamata riceve risposta immediata e il calendario si aggiorna da solo.",
+                  name: "Studio Dentistico",
+                  role: "Milano",
+                  saving: "€2.100/mese risparmiati",
+                  stars: 5
+                },
+                {
+                  quote: "I miei clienti si prenotano anche alle 22:00 di domenica. L'agente gestisce tutto e io trovo il calendario pieno il lunedì mattina.",
+                  name: "Centro Estetico",
+                  role: "Roma",
+                  saving: "Zero chiamate perse",
+                  stars: 5
+                },
+                {
+                  quote: "Pensavo che i clienti non avrebbero accettato l'AI. In realtà la voce è naturale e risponde alle domande più comuni in modo preciso.",
+                  name: "Studio Fisioterapico",
+                  role: "Torino",
+                  saving: "30 chiamate gestite/giorno",
+                  stars: 5
+                },
+                {
+                  quote: "Da quando l'agente risponde, abbiamo ridotto le disdette: conferme automatiche e calendario sempre aggiornato.",
+                  name: "Studio Medico",
+                  role: "Bologna",
+                  saving: "Meno no-show",
+                  stars: 5
+                },
+                {
+                  quote: "Finalmente non interrompo più i trattamenti per rispondere al telefono. Le prenotazioni arrivano ordinate e complete.",
+                  name: "Centro Benessere",
+                  role: "Firenze",
+                  saving: "Più tempo operativo",
+                  stars: 5
+                },
+                {
+                  quote: "Gestione chiamate perfetta anche nei picchi. L'agente filtra e raccoglie i dati, noi richiamamo solo dove serve.",
+                  name: "Clinica Privata",
+                  role: "Napoli",
+                  saving: "Gestione picchi",
+                  stars: 5
+                },
+                {
+                  quote: "Le FAQ sui servizi e sui prezzi vengono gestite in autonomia. Abbiamo aumentato le richieste senza aumentare il personale.",
+                  name: "Salone",
+                  role: "Verona",
+                  saving: "Più richieste",
+                  stars: 5
+                },
+                {
+                  quote: "Implementazione rapida: in pochi giorni era già operativo. Ora ogni chiamata riceve una risposta immediata, anche fuori orario.",
+                  name: "Studio Professionale",
+                  role: "Genova",
+                  saving: "Copertura 24/7",
+                  stars: 5
+                }
+              ].map((t, i) => (
+                <CarouselItem key={i} className="pl-4 md:basis-1/2 lg:basis-1/3">
+                  <div className="bg-white rounded-2xl p-8 border border-gray-100 flex flex-col h-full">
+                    <div className="flex gap-1 mb-5">
+                      {Array.from({ length: t.stars }).map((_, j) => (
+                        <Star key={j} className="w-4 h-4 fill-amber-400 text-amber-400" />
+                      ))}
+                    </div>
+                    <p className="text-gray-700 text-sm leading-relaxed mb-6 flex-1">"{t.quote}"</p>
+                    <div className="border-t border-gray-100 pt-5">
+                      <p className="font-semibold text-gray-900 text-sm">{t.name}</p>
+                      <p className="text-gray-400 text-xs mt-0.5">{t.role}</p>
+                      <div className="mt-3 inline-flex items-center gap-1.5 px-3 py-1 bg-green-50 rounded-full">
+                        <TrendingDown className="w-3 h-3 text-green-600" />
+                        <span className="text-xs font-medium text-green-700">{t.saving}</span>
+                      </div>
+                    </div>
                   </div>
-                </div>
-              </div>
-            ))}
-          </div>
+                </CarouselItem>
+              ))}
+            </CarouselContent>
+            <CarouselPrevious className="left-2 top-1/2 -translate-y-1/2 bg-white border border-gray-200 shadow-sm hover:bg-gray-50" />
+            <CarouselNext className="right-2 top-1/2 -translate-y-1/2 bg-white border border-gray-200 shadow-sm hover:bg-gray-50" />
+          </Carousel>
         </div>
       </section>
 

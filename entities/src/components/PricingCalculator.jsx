@@ -24,7 +24,8 @@ export default function PricingCalculator({ onConfigChange }) {
   const btnBase = "px-3 py-1.5 rounded-full text-sm font-medium transition-all duration-150 cursor-pointer border";
   const btnActive = "bg-[#0077b6] text-white border-[#0077b6] shadow-sm";
   const btnInactive = "bg-white text-[#0077b6] border-[#c8e6f0] hover:border-[#0077b6] hover:bg-[#f0f8ff]";
-  const recommendedRing = "border-[#d4af37] ring-1 ring-[#d4af37]/50";
+  const recommendedRing = "border-[#d4af37] ring-1 ring-[#d4af37]/40";
+  const recommendedInactive = "bg-[#fff6d6] text-[#8a6a10] border-[#d4af37] hover:bg-[#ffefb3] hover:border-[#d4af37]";
   const recommendedPill = "ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wide border border-[#d4af37] text-[#8a6a10] bg-[#fff6d6]";
 
   const recommended = {
@@ -34,8 +35,13 @@ export default function PricingCalculator({ onConfigChange }) {
   };
 
   const optionClass = (isSelected, isRecommended) => {
-    const base = `${btnBase} ${isSelected ? btnActive : btnInactive}`;
-    return isRecommended ? `${base} ${recommendedRing}` : base;
+    if (isSelected) {
+      return `${btnBase} ${btnActive} ${isRecommended ? recommendedRing : ""}`;
+    }
+    if (isRecommended) {
+      return `${btnBase} ${recommendedInactive} ${recommendedRing}`;
+    }
+    return `${btnBase} ${btnInactive}`;
   };
 
   const formatMinutes = (v) => {
