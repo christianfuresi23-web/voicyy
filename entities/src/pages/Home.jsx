@@ -8,6 +8,7 @@ import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious
 
 const WHATSAPP_NUMBER = '393921143643';
 const WHATSAPP_URL = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent('Ciao! Vorrei saperne di più sugli agenti AI Voicyy per la mia attività.')}`;
+const DEMO_URL = 'https://elevenlabs.io/app/talk-to?agent_id=agent_5501ktehs250fp8a14156aw4w0xv&branch_id=agtbrch_4401ktehs3kaf9b96kxr3k2g4xe2';
 
 export default function Home() {
   const [pricingConfig, setPricingConfig] = useState(null);
@@ -29,6 +30,14 @@ export default function Home() {
             <a href="#vantaggi" className="text-sm text-gray-600 hover:text-gray-900 transition-colors">Vantaggi</a>
             <a href="#testimonianze" className="text-sm text-gray-600 hover:text-gray-900 transition-colors">Case Studies</a>
             <a href="#prezzi" className="text-sm text-gray-600 hover:text-gray-900 transition-colors">Prezzi</a>
+            <a
+              href={DEMO_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-sm text-[#0077b6] hover:text-[#005f8f] transition-colors font-medium"
+            >
+              Ascolta demo
+            </a>
             <button onClick={scrollToForm} className="px-5 py-2 bg-[#0077b6] text-white text-sm font-medium rounded-full hover:bg-[#005f8f] transition-all">
               Richiedi Demo
             </button>
@@ -45,6 +54,15 @@ export default function Home() {
             <a href="#vantaggi" className="text-sm text-gray-700" onClick={() => setMobileMenuOpen(false)}>Vantaggi</a>
             <a href="#testimonianze" className="text-sm text-gray-700" onClick={() => setMobileMenuOpen(false)}>Case Studies</a>
             <a href="#prezzi" className="text-sm text-gray-700" onClick={() => setMobileMenuOpen(false)}>Prezzi</a>
+            <a
+              href={DEMO_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-sm text-[#0077b6] font-medium"
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              Ascolta demo
+            </a>
             <button onClick={() => { scrollToForm(); setMobileMenuOpen(false); }} className="px-5 py-2 bg-[#0077b6] text-white text-sm font-medium rounded-full">Richiedi Demo</button>
           </div>
         )}
