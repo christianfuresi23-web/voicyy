@@ -10,6 +10,29 @@ const WORKING_DAYS = ['Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì
 const stripePublicKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY;
 const stripePromise = stripePublicKey ? loadStripe(stripePublicKey) : null;
 
+// #region debug-point A:reporter
+const __DBG_URL = import.meta.env.VITE_DEBUG_SERVER_URL || 'http://127.0.0.1:7777/event';
+const __DBG_SESSION = 'agent-request-submit';
+const __DBG_RUN = 'pre';
+const __dbg = (hypothesisId, location, msg, data) => {
+  try {
+    fetch(__DBG_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        sessionId: __DBG_SESSION,
+        runId: __DBG_RUN,
+        hypothesisId,
+        location,
+        msg: `[DEBUG] ${msg}`,
+        data: data || {},
+        ts: Date.now(),
+      }),
+    }).catch(() => {});
+  } catch {}
+};
+// #endregion
+
 function StripeSetupForm({ onSuccess }) {
   const stripe = useStripe();
   const elements = useElements();
@@ -23,18 +46,27 @@ function StripeSetupForm({ onSuccess }) {
     if (!stripe || !elements) return;
 
     setSubmitting(true);
+    // #region debug-point A:stripe-confirm-setup
+    __dbg('A', 'AgentRequestForm.jsx:confirmSetup', 'stripe.confirmSetup start', {});
+    // #endregion
     const result = await stripe.confirmSetup({
       elements,
       redirect: 'if_required',
     });
 
     if (result.error) {
+      // #region debug-point A:stripe-confirm-setup-error
+      __dbg('A', 'AgentRequestForm.jsx:confirmSetup', 'stripe.confirmSetup error', { message: result.error.message, type: result.error.type, code: result.error.code });
+      // #endregion
       setError(result.error.message || 'Si è verificato un errore. Riprova.');
       setSubmitting(false);
       return;
     }
 
     if (result.setupIntent?.status === 'succeeded' || result.setupIntent?.status === 'processing') {
+      // #region debug-point A:stripe-confirm-setup-ok
+      __dbg('A', 'AgentRequestForm.jsx:confirmSetup', 'stripe.confirmSetup ok', { status: result.setupIntent?.status, id: result.setupIntent?.id });
+      // #endregion
       onSuccess(result.setupIntent);
       return;
     }
@@ -107,6 +139,19 @@ export default function AgentRequestForm({ pricingConfig }) {
     e.preventDefault();
     setError('');
 
+    // #region debug-point A:submit-start
+    __dbg('A', 'AgentRequestForm.jsx:handleSubmit', 'submit start', {
+      hasPricingConfig: Boolean(pricingConfig),
+      pricePerMin: pricingConfig?.pricePerMin,
+      totalMonthly: pricingConfig?.totalMonthly,
+      paymentReady,
+      hasSetupIntent: Boolean(paymentSetupIntentId),
+      hasCustomerId: Boolean(paymentCustomerId),
+      hasPaymentMethodId: Boolean(paymentMethodId),
+      hasSubItemId: Boolean(stripeSubscriptionItemId),
+    });
+    // #endregion
+
     if (!form.accepted_terms) {
       setError('Devi accettare i Termini e Condizioni per procedere.');
       return;
@@ -125,6 +170,9 @@ export default function AgentRequestForm({ pricingConfig }) {
           throw new Error('Seleziona prima una configurazione valida nel calcolatore (costo/minuto).');
         }
 
+        // #region debug-point A:subscribe-metered-start
+        __dbg('A', 'AgentRequestForm.jsx:handleSubmit', 'subscribe-metered start', { pricePerMin, setupIntentId: paymentSetupIntentId });
+        // #endregion
         const res = await fetch('/api/stripe/subscribe-metered', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -135,6 +183,9 @@ export default function AgentRequestForm({ pricingConfig }) {
           }),
         });
         const data = await res.json();
+        // #region debug-point A:subscribe-metered-response
+        __dbg('A', 'AgentRequestForm.jsx:handleSubmit', 'subscribe-metered response', { ok: res.ok, status: res.status, data });
+        // #endregion
         if (!res.ok) throw new Error(data?.error || 'Errore nel collegare la tariffa a Stripe.');
         setStripeSubscriptionId(data.subscriptionId || '');
         setStripeSubscriptionItemId(data.subscriptionItemId || '');
@@ -157,31 +208,62 @@ export default function AgentRequestForm({ pricingConfig }) {
         stripe_subscription_item_id: stripeSubscriptionItemId || '',
       };
 
+      // #region debug-point B:agentrequest-create-start
+      __dbg('B', 'AgentRequestForm.jsx:handleSubmit', 'AgentRequest.create start', {
+        contact_email: requestData.contact_email,
+        business_name: requestData.business_name,
+        minutes: requestData.minutes,
+        cost_per_minute: requestData.cost_per_minute,
+        total_monthly_cost: requestData.total_monthly_cost,
+      });
+      // #endregion
       await api.entities.AgentRequest.create(requestData);
+      // #region debug-point B:agentrequest-create-ok
+      __dbg('B', 'AgentRequestForm.jsx:handleSubmit', 'AgentRequest.create ok', {});
+      // #endregion
 
       // Send admin notification email
       try {
+        // #region debug-point D:send-admin-email-start
+        __dbg('D', 'AgentRequestForm.jsx:SendEmail', 'SendEmail admin start', { to: 'info.voicyy@gmail.com' });
+        // #endregion
         await api.integrations.Core.SendEmail({
           to: 'info.voicyy@gmail.com',
           from_name: 'Voicyy',
           subject: `🔔 Nuova richiesta agente — ${form.business_name}`,
           body: `Nuova richiesta da ${requestData.contact_name} (${requestData.contact_email}) per ${requestData.business_name}.\nTelefono: ${requestData.phone}\nLLM: ${requestData.llm} | TTS: ${requestData.tts} | Telefonia: ${requestData.telephony}\nMinuti/mese: ${requestData.minutes} | Totale mensile: €${parseFloat(requestData.total_monthly_cost).toFixed(2)}\nServizi: ${requestData.services}\nGiorni: ${requestData.working_days} | Ore/giorno: ${requestData.working_hours_per_day}\nEmail Calendar: ${requestData.calendar_email}\nEmail notifiche: ${requestData.notification_email}\nNote: ${requestData.additional_notes || '—'}\nMarketing: ${requestData.accepted_marketing ? 'Sì' : 'No'}`,
         });
+        // #region debug-point D:send-admin-email-ok
+        __dbg('D', 'AgentRequestForm.jsx:SendEmail', 'SendEmail admin ok', {});
+        // #endregion
       } catch (e) { console.warn('Admin email failed', e); }
 
       // Send client confirmation email
       try {
+        // #region debug-point D:send-client-email-start
+        __dbg('D', 'AgentRequestForm.jsx:SendEmail', 'SendEmail client start', { to: form.contact_email });
+        // #endregion
         await api.integrations.Core.SendEmail({
           to: form.contact_email,
           from_name: 'Voicyy',
           subject: '✅ Richiesta ricevuta — Voicyy AI Agent',
           body: `Ciao ${requestData.contact_name},\n\nabbiamo ricevuto la tua richiesta per ${requestData.business_name}.\n\nConfigurazione selezionata:\n- LLM: ${requestData.llm || '—'}\n- Voce TTS: ${requestData.tts || '—'}\n- Telefonia: ${requestData.telephony || '—'}\n- Minuti/mese: ${requestData.minutes || '—'}\n- Costo stimato/min: €${parseFloat(requestData.cost_per_minute || 0).toFixed(4)}\n- Totale mensile stimato: €${parseFloat(requestData.total_monthly_cost || 0).toFixed(2)}\n\nIl tuo agente sarà pronto entro 1–2 settimane. Ti contatteremo presto per iniziare la configurazione personalizzata.\n\nPer qualsiasi domanda: info.voicyy@gmail.com\n\n© 2025 Voicyy — AI Voice Agents`,
         });
+        // #region debug-point D:send-client-email-ok
+        __dbg('D', 'AgentRequestForm.jsx:SendEmail', 'SendEmail client ok', {});
+        // #endregion
       } catch (e) { console.warn('Client email failed', e); }
 
       setSubmitted(true);
     } catch (err) {
-      setError('Si è verificato un errore. Riprova o contattaci su WhatsApp.');
+      // #region debug-point E:submit-error
+      __dbg('E', 'AgentRequestForm.jsx:handleSubmit', 'submit error', {
+        message: err?.message,
+        name: err?.name,
+        stack: err?.stack,
+      });
+      // #endregion
+      setError(err?.message ? `Errore: ${err.message}` : 'Si è verificato un errore. Riprova o contattaci su WhatsApp.');
     } finally {
       setSubmitting(false);
     }

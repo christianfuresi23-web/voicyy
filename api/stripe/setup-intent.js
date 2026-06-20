@@ -28,6 +28,10 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: "Method Not Allowed" });
   }
 
+  // #region debug-point A:api-entry
+  (() => { try { const fs = require("fs"); const p = ".dbg/agent-request-submit.env"; let u = "http://127.0.0.1:7777/event", s = "agent-request-submit"; try { const e = fs.readFileSync(p, "utf8"); u = e.match(/DEBUG_SERVER_URL=(.+)/)?.[1] || u; s = e.match(/DEBUG_SESSION_ID=(.+)/)?.[1] || s; } catch {} fetch(u, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ sessionId: s, runId: "pre", hypothesisId: "A", location: "setup-intent.js", msg: "[DEBUG] setup-intent entry", data: { hasSecret: Boolean(process.env.STRIPE_SECRET_KEY) }, ts: Date.now() }) }).catch(() => {}); } catch {} })();
+  // #endregion
+
   const secretKey = process.env.STRIPE_SECRET_KEY;
   if (!secretKey) return res.status(500).json({ error: "Stripe not configured" });
 
@@ -63,9 +67,12 @@ export default async function handler(req, res) {
     payment_method_types: ["card"],
   });
 
+  // #region debug-point A:api-ok
+  (() => { try { const fs = require("fs"); const p = ".dbg/agent-request-submit.env"; let u = "http://127.0.0.1:7777/event", s = "agent-request-submit"; try { const e = fs.readFileSync(p, "utf8"); u = e.match(/DEBUG_SERVER_URL=(.+)/)?.[1] || u; s = e.match(/DEBUG_SESSION_ID=(.+)/)?.[1] || s; } catch {} fetch(u, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ sessionId: s, runId: "pre", hypothesisId: "A", location: "setup-intent.js", msg: "[DEBUG] setup-intent ok", data: { customerId: customer.id, setupIntentId: setupIntent.id }, ts: Date.now() }) }).catch(() => {}); } catch {} })();
+  // #endregion
+
   return res.status(200).json({
     clientSecret: setupIntent.client_secret,
     customerId: customer.id,
   });
 }
-

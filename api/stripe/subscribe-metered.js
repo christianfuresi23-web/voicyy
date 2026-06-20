@@ -32,6 +32,10 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: "Method Not Allowed" });
   }
 
+  // #region debug-point A:api-entry
+  (() => { try { const fs = require("fs"); const p = ".dbg/agent-request-submit.env"; let u = "http://127.0.0.1:7777/event", s = "agent-request-submit"; try { const e = fs.readFileSync(p, "utf8"); u = e.match(/DEBUG_SERVER_URL=(.+)/)?.[1] || u; s = e.match(/DEBUG_SESSION_ID=(.+)/)?.[1] || s; } catch {} fetch(u, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ sessionId: s, runId: "pre", hypothesisId: "A", location: "subscribe-metered.js", msg: "[DEBUG] subscribe-metered entry", data: { hasSecret: Boolean(process.env.STRIPE_SECRET_KEY) }, ts: Date.now() }) }).catch(() => {}); } catch {} })();
+  // #endregion
+
   const secretKey = process.env.STRIPE_SECRET_KEY;
   if (!secretKey) return res.status(500).json({ error: "Stripe not configured (missing STRIPE_SECRET_KEY)" });
 
@@ -93,6 +97,10 @@ export default async function handler(req, res) {
   });
 
   const subscriptionItemId = subscription.items?.data?.[0]?.id || "";
+
+  // #region debug-point A:api-ok
+  (() => { try { const fs = require("fs"); const p = ".dbg/agent-request-submit.env"; let u = "http://127.0.0.1:7777/event", s = "agent-request-submit"; try { const e = fs.readFileSync(p, "utf8"); u = e.match(/DEBUG_SERVER_URL=(.+)/)?.[1] || u; s = e.match(/DEBUG_SESSION_ID=(.+)/)?.[1] || s; } catch {} fetch(u, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ sessionId: s, runId: "pre", hypothesisId: "A", location: "subscribe-metered.js", msg: "[DEBUG] subscribe-metered ok", data: { customerId, subscriptionId: subscription.id, subscriptionItemId, priceId: price.id, normalizedPricePerMin: pricePerMin }, ts: Date.now() }) }).catch(() => {}); } catch {} })();
+  // #endregion
 
   return res.status(200).json({
     subscriptionId: subscription.id,
