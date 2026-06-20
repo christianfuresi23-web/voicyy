@@ -64,10 +64,15 @@ export default async function handler(req, res) {
   const products = await stripe.products.list({ active: true, limit: 100 });
   let product = products.data.find((p) => p.metadata?.product_key === "voicyy_minutes") || null;
   if (!product) {
-    product = await stripe.products.create({
-      name: "Voicyy - Minuti agente",
-      metadata: { product_key: "voicyy_minutes" },
-    });
+    const byName = products.data.find((p) => p.name === "Voicyy - Minuti agente") || null;
+    if (byName) {
+      product = await stripe.products.update(byName.id, { metadata: { ...byName.metadata, product_key: "voicyy_minutes" } });
+    } else {
+      product = await stripe.products.create({
+        name: "Voicyy - Minuti agente",
+        metadata: { product_key: "voicyy_minutes" },
+      });
+    }
   }
 
   const prices = await stripe.prices.list({ product: product.id, active: true, limit: 100 });
@@ -96,4 +101,3 @@ export default async function handler(req, res) {
     normalizedPricePerMin: pricePerMin,
   });
 }
-
