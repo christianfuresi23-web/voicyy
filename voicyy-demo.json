@@ -1,0 +1,26 @@
+{
+  "agent_id": "agent_5501ktehs250fp8a14156aw4w0xv",
+  "name": "lorenzo",
+  "conversation_config": {
+    "tts": {
+      "model_id": "eleven_multilingual_v2",
+      "voice_id": "13Cuh3NuYvWOVQtLbRN8"
+    },
+    "agent": {
+      "first_message": "Buongiorno, studio dentistico Dental Smile, come posso aiutarla oggi?",
+      "language": "it"
+    }
+  },
+  "platform_settings": {
+    "widget": {
+      "avatar": {
+        "type": "orb",
+        "color_1": "#2792dc",
+        "color_2": "#9ce6e6"
+      },
+      "bg_color": "#ffffff",
+      "text_color": "#000000"
+    }
+  },
+  "branch_id": "agtbrch_4401ktehs3kaf9b96kxr3k2g4xe2"
+}

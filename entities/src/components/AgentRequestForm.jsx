@@ -657,8 +657,8 @@ export default function AgentRequestForm({ pricingConfig }) {
                             </button>
                           )}
                         </div>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                          <div>
+                        <div className="flex flex-col md:flex-row gap-3">
+                          <div className="flex-1 min-w-0">
                             <p className="text-xs text-gray-400 mb-1.5">Inizio</p>
                             <input
                               type="time"
@@ -668,7 +668,7 @@ export default function AgentRequestForm({ pricingConfig }) {
                               required
                             />
                           </div>
-                          <div>
+                          <div className="flex-1 min-w-0">
                             <p className="text-xs text-gray-400 mb-1.5">Fine</p>
                             <input
                               type="time"

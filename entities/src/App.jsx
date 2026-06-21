@@ -7,6 +7,7 @@ import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import ScrollToTop from './components/ScrollToTop';
 // Add page imports here
 import Home from './pages/Home';
+import Demo from './pages/Demo';
 import TermsAndConditions from './pages/TermsAndCondition';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import AdminDashboard from './pages/AdminDashboard';
@@ -25,6 +26,7 @@ const AuthenticatedApp = () => {
   return (
     <Routes>
       <Route path="/" element={<Home />} />
+      <Route path="/demo" element={<Demo />} />
       <Route path="/terms" element={<TermsAndConditions />} />
       <Route path="/privacy" element={<PrivacyPolicy />} />
       <Route path="/voicyy-admin-x9k2" element={<AdminDashboard />} />

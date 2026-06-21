@@ -10,7 +10,7 @@ const WHATSAPP_NUMBER = '393921143643';
 const WHATSAPP_TEXT = 'Ciao! Vorrei saperne di più sugli agenti AI Voicyy per la mia attività.';
 const WHATSAPP_HTTP_URL = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(WHATSAPP_TEXT)}`;
 const WHATSAPP_DEEP_URL = `whatsapp://send?phone=${WHATSAPP_NUMBER}&text=${encodeURIComponent(WHATSAPP_TEXT)}`;
-const DEMO_URL = 'https://elevenlabs.io/app/talk-to?agent_id=agent_5501ktehs250fp8a14156aw4w0xv&branch_id=agtbrch_4401ktehs3kaf9b96kxr3k2g4xe2';
+const DEMO_URL = '/demo';
 
 export default function Home() {
   const [pricingConfig, setPricingConfig] = useState(null);
