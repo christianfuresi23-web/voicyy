@@ -26,6 +26,11 @@ export default function AdminDashboard() {
   const [loadingRequests, setLoadingRequests] = useState(false);
   const [expandedId, setExpandedId] = useState(null);
   const [statusFilter, setStatusFilter] = useState('all');
+  const [paymentModalOpen, setPaymentModalOpen] = useState(false);
+  const [paymentTarget, setPaymentTarget] = useState(null);
+  const [paymentSetupIntentId, setPaymentSetupIntentId] = useState('');
+  const [paymentSubmitting, setPaymentSubmitting] = useState(false);
+  const [paymentError, setPaymentError] = useState('');
 
   useEffect(() => {
     const auth = sessionStorage.getItem(AUTH_KEY);
@@ -108,6 +113,61 @@ export default function AdminDashboard() {
   const updateStatus = async (id, status) => {
     await api.entities.AgentRequest.update(id, { status });
     setRequests(prev => prev.map(r => r.id === id ? { ...r, status } : r));
+  };
+
+  const openPaymentModal = (req) => {
+    setPaymentTarget(req);
+    setPaymentSetupIntentId('');
+    setPaymentError('');
+    setPaymentModalOpen(true);
+  };
+
+  const submitAdminPayment = async (e) => {
+    e.preventDefault();
+    if (!paymentTarget?.id) return;
+    setPaymentError('');
+    const setupIntentId = paymentSetupIntentId.trim();
+    if (!setupIntentId) {
+      setPaymentError('Inserisci un SetupIntent ID valido (es: seti_...).');
+      return;
+    }
+    const pricePerMin = Number(paymentTarget?.cost_per_minute || 0);
+    if (!pricePerMin || !Number.isFinite(pricePerMin)) {
+      setPaymentError('Costo/min non valido nella richiesta (configurazione mancante).');
+      return;
+    }
+
+    setPaymentSubmitting(true);
+    try {
+      const res = await fetch('/api/stripe/subscribe-metered', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          setup_intent_id: setupIntentId,
+          price_per_min: pricePerMin,
+          currency: 'eur',
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data?.error || 'Errore nel salvare il metodo di pagamento.');
+
+      const patch = {
+        payment_status: 'provided',
+        stripe_setup_intent_id: setupIntentId,
+        stripe_customer_id: data.customerId || '',
+        stripe_payment_method_id: data.paymentMethodId || '',
+        stripe_subscription_id: data.subscriptionId || '',
+        stripe_subscription_item_id: data.subscriptionItemId || '',
+      };
+      const updated = await api.entities.AgentRequest.update(paymentTarget.id, patch);
+      setRequests(prev => prev.map(r => r.id === paymentTarget.id ? { ...r, ...updated } : r));
+      setPaymentModalOpen(false);
+      setPaymentTarget(null);
+    } catch (err) {
+      setPaymentError(err?.message || 'Errore nel salvare il metodo di pagamento.');
+    } finally {
+      setPaymentSubmitting(false);
+    }
   };
 
   const filteredRequests = statusFilter === 'all' ? requests : requests.filter(r => r.status === statusFilter);
@@ -396,6 +456,15 @@ export default function AdminDashboard() {
                           label="Pagamento"
                           value={req.payment_status === 'provided' ? '✅ Metodo inserito' : (req.payment_status === 'missing' ? '⚠️ Mancante' : '—')}
                         />
+                        {req.payment_status !== 'provided' && (
+                          <button
+                            type="button"
+                            onClick={() => openPaymentModal(req)}
+                            className="w-full mt-2 px-4 py-2.5 rounded-xl bg-[#0077b6] hover:bg-[#005f8f] text-white text-sm font-semibold transition-all"
+                          >
+                            Aggiungi Metoto Di Pagamento.
+                          </button>
+                        )}
                       </div>
                       <div className="space-y-4">
                         <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Configurazione AI</h4>
@@ -436,6 +505,63 @@ export default function AdminDashboard() {
           </div>
         )}
       </div>
+      {paymentModalOpen && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center px-4">
+          <div className="absolute inset-0 bg-black/40" onClick={() => setPaymentModalOpen(false)} />
+          <div className="relative w-full max-w-lg bg-white rounded-2xl border border-gray-100 shadow-xl p-6">
+            <div className="flex items-start justify-between gap-4 mb-4">
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">Aggiungi metodo di pagamento</h3>
+                <p className="text-sm text-gray-500 mt-1">
+                  Incolla l’ID del SetupIntent (seti_...) ottenuto dal cliente.
+                </p>
+              </div>
+              <button
+                type="button"
+                className="text-gray-400 hover:text-gray-600"
+                onClick={() => setPaymentModalOpen(false)}
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={submitAdminPayment} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">SetupIntent ID</label>
+                <input
+                  value={paymentSetupIntentId}
+                  onChange={(e) => setPaymentSetupIntentId(e.target.value)}
+                  placeholder="seti_123..."
+                  className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-white text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-[#0077b6]/20 focus:border-[#0077b6] transition-all"
+                />
+              </div>
+
+              {paymentError && (
+                <div className="bg-red-50 border border-red-100 rounded-xl p-3 text-sm text-red-700">
+                  {paymentError}
+                </div>
+              )}
+
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setPaymentModalOpen(false)}
+                  className="flex-1 px-4 py-3 rounded-xl border border-gray-200 text-gray-700 text-sm font-semibold hover:border-gray-300 transition-all"
+                >
+                  Annulla
+                </button>
+                <button
+                  type="submit"
+                  disabled={paymentSubmitting}
+                  className="flex-1 px-4 py-3 rounded-xl bg-[#0077b6] hover:bg-[#005f8f] disabled:opacity-60 text-white text-sm font-semibold transition-all"
+                >
+                  {paymentSubmitting ? 'Salvataggio...' : 'Salva'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

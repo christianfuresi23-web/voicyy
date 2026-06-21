@@ -11,6 +11,24 @@ export default function PricingCalculator({ onConfigChange }) {
     return getPricePerMinute(selectedLLM, selectedTTS, selectedTelephony);
   }, [selectedLLM, selectedTTS, selectedTelephony]);
 
+  const llmBasePerMin = useMemo(() => {
+    return getPricePerMinute(selectedLLM, 'Platform Voices', 'Custom Telephony');
+  }, [selectedLLM]);
+
+  const baseWithTtsCustomPerMin = useMemo(() => {
+    return getPricePerMinute(selectedLLM, selectedTTS, 'Custom Telephony');
+  }, [selectedLLM, selectedTTS]);
+
+  const ttsPerMin = useMemo(() => {
+    const v = baseWithTtsCustomPerMin - llmBasePerMin;
+    return Math.max(0, Math.round(v * 10000) / 10000);
+  }, [baseWithTtsCustomPerMin, llmBasePerMin]);
+
+  const telephonyPerMin = useMemo(() => {
+    const v = pricePerMin - baseWithTtsCustomPerMin;
+    return Math.max(0, Math.round(v * 10000) / 10000);
+  }, [pricePerMin, baseWithTtsCustomPerMin]);
+
   const totalMonthly = useMemo(() => {
     return parseFloat((pricePerMin * minutes).toFixed(2));
   }, [pricePerMin, minutes]);
@@ -150,15 +168,15 @@ export default function PricingCalculator({ onConfigChange }) {
               <div className="space-y-3 mb-6 pb-6 border-b border-white/10">
                 <div className="flex justify-between text-sm">
                   <span className="text-white/60">Costo LLM</span>
-                  <span className="text-white/90 font-mono">incluso</span>
+                  <span className="text-white/90 font-mono">€{llmBasePerMin.toFixed(4)}</span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-white/60">TTS</span>
-                  <span className="text-white/90 font-mono">incluso</span>
+                  <span className="text-white/90 font-mono">€{ttsPerMin.toFixed(4)}</span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-white/60">Telefonia</span>
-                  <span className="text-white/90 font-mono">{selectedTelephony === 'Twilio/Telnyx' ? 'inclusa' : 'custom'}</span>
+                  <span className="text-white/90 font-mono">€{telephonyPerMin.toFixed(4)}</span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-white/60">Minuti/mese</span>

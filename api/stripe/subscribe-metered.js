@@ -107,5 +107,7 @@ export default async function handler(req, res) {
     subscriptionItemId,
     priceId: price.id,
     normalizedPricePerMin: pricePerMin,
+    customerId,
+    paymentMethodId,
   });
 }

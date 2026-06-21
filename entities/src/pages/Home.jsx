@@ -7,7 +7,9 @@ import AgentRequestForm from '../components/AgentRequestForm';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
 
 const WHATSAPP_NUMBER = '393921143643';
-const WHATSAPP_URL = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent('Ciao! Vorrei saperne di più sugli agenti AI Voicyy per la mia attività.')}`;
+const WHATSAPP_TEXT = 'Ciao! Vorrei saperne di più sugli agenti AI Voicyy per la mia attività.';
+const WHATSAPP_HTTP_URL = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(WHATSAPP_TEXT)}`;
+const WHATSAPP_DEEP_URL = `whatsapp://send?phone=${WHATSAPP_NUMBER}&text=${encodeURIComponent(WHATSAPP_TEXT)}`;
 const DEMO_URL = 'https://elevenlabs.io/app/talk-to?agent_id=agent_5501ktehs250fp8a14156aw4w0xv&branch_id=agtbrch_4401ktehs3kaf9b96kxr3k2g4xe2';
 
 export default function Home() {
@@ -19,6 +21,16 @@ export default function Home() {
     formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
+  const openWhatsApp = (e) => {
+    if (e?.preventDefault) e.preventDefault();
+    window.location.href = WHATSAPP_DEEP_URL;
+    setTimeout(() => {
+      if (document.visibilityState === 'visible') {
+        window.location.href = WHATSAPP_HTTP_URL;
+      }
+    }, 900);
+  };
+
   return (
     <div className="min-h-screen bg-white font-body">
       {/* Navbar */}
@@ -28,7 +40,7 @@ export default function Home() {
           <div className="hidden md:flex items-center gap-8">
             <a href="#servizio" className="text-sm text-gray-600 hover:text-gray-900 transition-colors">Il Servizio</a>
             <a href="#vantaggi" className="text-sm text-gray-600 hover:text-gray-900 transition-colors">Vantaggi</a>
-            <a href="#testimonianze" className="text-sm text-gray-600 hover:text-gray-900 transition-colors">Case Studies</a>
+            <a href="#testimonianze" className="text-sm text-gray-600 hover:text-gray-900 transition-colors">Casi Studio</a>
             <a href="#prezzi" className="text-sm text-gray-600 hover:text-gray-900 transition-colors">Prezzi</a>
             <a
               href={DEMO_URL}
@@ -52,7 +64,7 @@ export default function Home() {
           <div className="md:hidden bg-white border-t border-gray-100 px-6 py-4 flex flex-col gap-4">
             <a href="#servizio" className="text-sm text-gray-700" onClick={() => setMobileMenuOpen(false)}>Il Servizio</a>
             <a href="#vantaggi" className="text-sm text-gray-700" onClick={() => setMobileMenuOpen(false)}>Vantaggi</a>
-            <a href="#testimonianze" className="text-sm text-gray-700" onClick={() => setMobileMenuOpen(false)}>Case Studies</a>
+            <a href="#testimonianze" className="text-sm text-gray-700" onClick={() => setMobileMenuOpen(false)}>Casi Studio</a>
             <a href="#prezzi" className="text-sm text-gray-700" onClick={() => setMobileMenuOpen(false)}>Prezzi</a>
             <a
               href={DEMO_URL}
@@ -93,9 +105,8 @@ export default function Home() {
               <ArrowRight className="w-4 h-4" />
             </button>
             <a
-              href={WHATSAPP_URL}
-              target="_blank"
-              rel="noopener noreferrer"
+              href={WHATSAPP_HTTP_URL}
+              onClick={openWhatsApp}
               className="px-8 py-4 bg-[#25D366] hover:bg-[#1daf54] text-white font-semibold text-base rounded-2xl transition-all shadow-sm hover:shadow-lg active:scale-[0.98] flex items-center gap-2"
             >
               <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
@@ -183,12 +194,9 @@ export default function Home() {
               </div>
             </div>
             <div className="mt-8 flex justify-center">
-              <div className="inline-flex flex-col sm:flex-row items-center gap-2 sm:gap-4 bg-white/5 border border-white/10 rounded-2xl px-6 py-4">
+              <div className="inline-flex items-center bg-white/5 border border-white/10 rounded-2xl px-6 py-4">
                 <p className="text-white/70 text-sm font-medium tracking-wide">
-                  Con Voicyy <span className="text-[#00b4d8] font-bold">risparmi</span> in media
-                </p>
-                <p className="text-white/70 text-sm font-medium tracking-wide">
-                  <span className="text-[#00b4d8] font-bold">€2.100</span> <span className="text-white/60 font-normal">/m</span>
+                  Con Voicyy <span className="text-[#00b4d8] font-bold">risparmi</span> in media <span className="text-[#00b4d8] font-bold">€2.100</span> <span className="text-white/60 font-normal">/m</span>
                 </p>
               </div>
             </div>
@@ -200,7 +208,7 @@ export default function Home() {
       <section className="py-28 px-6 bg-gray-50" id="testimonianze">
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-20">
-            <h2 className="text-4xl font-semibold text-gray-900 mb-4 tracking-tight">Case Studies</h2>
+            <h2 className="text-4xl font-semibold text-gray-900 mb-4 tracking-tight">Casi Studio</h2>
             <p className="text-lg text-gray-500 max-w-xl mx-auto">Risultati reali da attività reali che hanno scelto Voicyy.</p>
           </div>
 
@@ -303,7 +311,7 @@ export default function Home() {
           <PricingCalculator onConfigChange={setPricingConfig} />
           <p className="text-center text-sm text-gray-400 mt-6">
             Non sai quale configurazione scegliere?{' '}
-            <a href={WHATSAPP_URL} target="_blank" rel="noopener noreferrer" className="text-[#0077b6] hover:underline font-medium">
+            <a href={WHATSAPP_HTTP_URL} onClick={openWhatsApp} className="text-[#0077b6] hover:underline font-medium">
               Scrivici su WhatsApp
             </a>
             {' '}— ti consigliamo la soluzione migliore per la tua attività.
@@ -330,9 +338,8 @@ export default function Home() {
               <VoicyyLogo size="md" className="mb-4" />
               <p className="text-white/50 text-sm leading-relaxed mt-2">Agenti AI vocali e chatbot per la gestione automatizzata di prenotazioni e segreteria virtuale.</p>
               <a
-                href={WHATSAPP_URL}
-                target="_blank"
-                rel="noopener noreferrer"
+                href={WHATSAPP_HTTP_URL}
+                onClick={openWhatsApp}
                 className="mt-6 inline-flex items-center gap-2 px-5 py-2.5 bg-[#25D366] hover:bg-[#1daf54] text-white text-sm font-semibold rounded-xl transition-all"
               >
                 <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
@@ -347,7 +354,7 @@ export default function Home() {
                 <ul className="space-y-3">
                   <li><a href="#servizio" className="text-white/60 hover:text-white text-sm transition-colors">Il Servizio</a></li>
                   <li><a href="#vantaggi" className="text-white/60 hover:text-white text-sm transition-colors">Vantaggi</a></li>
-                  <li><a href="#testimonianze" className="text-white/60 hover:text-white text-sm transition-colors">Case Studies</a></li>
+                  <li><a href="#testimonianze" className="text-white/60 hover:text-white text-sm transition-colors">Casi Studio</a></li>
                   <li><a href="#prezzi" className="text-white/60 hover:text-white text-sm transition-colors">Prezzi</a></li>
                 </ul>
               </div>
@@ -374,9 +381,8 @@ export default function Home() {
 
       {/* Floating WhatsApp */}
       <a
-        href={WHATSAPP_URL}
-        target="_blank"
-        rel="noopener noreferrer"
+        href={WHATSAPP_HTTP_URL}
+        onClick={openWhatsApp}
         className="fixed bottom-6 right-6 z-50 w-14 h-14 bg-[#25D366] hover:bg-[#1daf54] rounded-full shadow-lg hover:shadow-xl flex items-center justify-center transition-all active:scale-95"
         aria-label="Contattaci su WhatsApp"
       >
