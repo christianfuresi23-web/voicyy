@@ -1,8 +1,9 @@
 {
-  "name": "Automation",
-  "short_name": "Automation",
-  "start_url": "/",
+  "name": "Voicyy Admin",
+  "short_name": "Voicyy",
+  "start_url": "/voicyy-admin-x9k2",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#ffffff",
-  "theme_color": "#000000"
+  "theme_color": "#0077b6"
 }

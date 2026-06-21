@@ -93,6 +93,19 @@
   }
 }
 
+input[type='time'] {
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+input[type='time']::-webkit-date-and-time-value {
+  text-align: left;
+}
+
+input[type='time']::-webkit-datetime-edit {
+  padding: 0;
+}
+
 /* Custom range slider */
 input[type='range'] {
   -webkit-appearance: none;

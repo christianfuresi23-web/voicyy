@@ -662,7 +662,7 @@ export default function AgentRequestForm({ pricingConfig }) {
                             <p className="text-xs text-gray-400 mb-1.5">Inizio</p>
                             <input
                               type="time"
-                              className={`${inputClass} px-3 py-2 md:px-4 md:py-3`}
+                              className={`${inputClass} appearance-none h-12 px-4 py-2`}
                               value={slot?.start || ''}
                               onChange={e => setTimeSlot(idx, 'start', e.target.value)}
                               required
@@ -672,7 +672,7 @@ export default function AgentRequestForm({ pricingConfig }) {
                             <p className="text-xs text-gray-400 mb-1.5">Fine</p>
                             <input
                               type="time"
-                              className={`${inputClass} px-3 py-2 md:px-4 md:py-3`}
+                              className={`${inputClass} appearance-none h-12 px-4 py-2`}
                               value={slot?.end || ''}
                               onChange={e => setTimeSlot(idx, 'end', e.target.value)}
                               required
