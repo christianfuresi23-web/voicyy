@@ -10,6 +10,7 @@ export default function Demo() {
   const [input, setInput] = React.useState('');
   const [messages, setMessages] = React.useState([]);
   const [audioEnabled, setAudioEnabled] = React.useState(true);
+  const [audioMode, setAudioMode] = React.useState('tts');
   const [isSpeaking, setIsSpeaking] = React.useState(false);
   const [agentSampleRate, setAgentSampleRate] = React.useState(16000);
 
@@ -18,6 +19,7 @@ export default function Demo() {
   const nextPlayTimeRef = React.useRef(0);
   const sourcesRef = React.useRef([]);
   const speakingTimeoutRef = React.useRef(null);
+  const ttsAudioRef = React.useRef(null);
 
   const decodeBase64 = React.useCallback((base64) => {
     const bin = atob(base64);
@@ -51,12 +53,64 @@ export default function Demo() {
       } catch {}
     }
     nextPlayTimeRef.current = 0;
+    if (ttsAudioRef.current) {
+      try {
+        ttsAudioRef.current.pause();
+      } catch {}
+      ttsAudioRef.current.currentTime = 0;
+      ttsAudioRef.current.src = '';
+      ttsAudioRef.current = null;
+    }
     if (speakingTimeoutRef.current) {
       clearTimeout(speakingTimeoutRef.current);
       speakingTimeoutRef.current = null;
     }
     setIsSpeaking(false);
   }, []);
+
+  const normalizeForSpeech = React.useCallback((text) => {
+    const t = String(text || '');
+    return t.replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/ig, (email) => {
+      return email
+        .replace(/@/g, ' chiocciola ')
+        .replace(/\./g, ' punto ')
+        .replace(/_/g, ' underscore ')
+        .replace(/-/g, ' trattino ');
+    });
+  }, []);
+
+  const playTts = React.useCallback(async (text) => {
+    const cfg = config;
+    const voiceId = cfg?.tts?.voice_id;
+    const modelId = cfg?.tts?.model_id;
+    const qs = new URLSearchParams({
+      text: normalizeForSpeech(text),
+      ...(voiceId ? { voice_id: voiceId } : null),
+      ...(modelId ? { model_id: modelId } : null),
+      ...(cfg?.tts?.stability != null ? { stability: String(cfg.tts.stability) } : null),
+      ...(cfg?.tts?.similarity_boost != null ? { similarity_boost: String(cfg.tts.similarity_boost) } : null),
+      ...(cfg?.tts?.speed != null ? { speed: String(cfg.tts.speed) } : null),
+      ...(cfg?.tts?.optimize_streaming_latency != null ? { optimize_streaming_latency: String(cfg.tts.optimize_streaming_latency) } : null),
+    });
+
+    const resp = await fetch(`/api/tts?${qs.toString()}`);
+    if (!resp.ok) {
+      const details = await resp.json().catch(() => ({}));
+      const message = details?.details || details?.error || 'TTS non disponibile';
+      throw new Error(message);
+    }
+    const blob = await resp.blob();
+    const audioUrl = URL.createObjectURL(blob);
+    const audio = new Audio(audioUrl);
+    ttsAudioRef.current = audio;
+    setIsSpeaking(true);
+    audio.onended = () => {
+      setIsSpeaking(false);
+      URL.revokeObjectURL(audioUrl);
+      if (ttsAudioRef.current === audio) ttsAudioRef.current = null;
+    };
+    await audio.play();
+  }, [config, normalizeForSpeech]);
 
   const playPcm16Chunk = React.useCallback(async (base64Audio) => {
     const ctx = await ensureAudioContext();
@@ -174,13 +228,19 @@ export default function Demo() {
 
         if (type === 'agent_response') {
           const text = msg?.agent_response_event?.agent_response;
-          if (text) setMessages((m) => [...m, { role: 'agent', text }]);
+          if (text) {
+            setMessages((m) => [...m, { role: 'agent', text }]);
+            if (audioEnabled && audioMode === 'tts') {
+              stopAudio();
+              playTts(text).catch((e) => setError(e?.message || 'Errore TTS'));
+            }
+          }
           return;
         }
 
         if (type === 'audio') {
           const b64 = msg?.audio_event?.audio_base_64;
-          if (audioEnabled && b64) playPcm16Chunk(b64);
+          if (audioEnabled && audioMode === 'agent' && b64) playPcm16Chunk(b64);
         }
       };
     } catch (e) {
@@ -277,6 +337,14 @@ export default function Demo() {
                 {audioEnabled ? <Volume2 className="w-4 h-4 text-[#0077b6]" /> : <VolumeX className="w-4 h-4 text-gray-500" />}
                 Audio {audioEnabled ? 'ON' : 'OFF'}
               </button>
+
+            <button
+              type="button"
+              onClick={() => { setAudioMode((m) => (m === 'tts' ? 'agent' : 'tts')); stopAudio(); }}
+              className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-white border border-gray-200 hover:border-[#0077b6] text-gray-700 text-sm font-semibold transition-all"
+            >
+              Voce: {audioMode === 'tts' ? 'Voicyy' : 'Agent'}
+            </button>
             </div>
 
             {error && (
