@@ -427,7 +427,7 @@ export default function AgentRequestForm({ pricingConfig }) {
     }
   };
 
-  const inputClass = "w-full px-4 py-3 rounded-xl border border-gray-200 bg-white text-gray-900 text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#0077b6]/20 focus:border-[#0077b6] transition-all";
+  const inputClass = "w-full min-w-0 px-4 py-3 rounded-xl border border-gray-200 bg-white text-gray-900 text-[16px] md:text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#0077b6]/20 focus:border-[#0077b6] transition-all";
   const labelClass = "block text-sm font-medium text-gray-700 mb-1.5";
 
   const openPaymentSetup = async () => {
@@ -657,7 +657,7 @@ export default function AgentRequestForm({ pricingConfig }) {
                             </button>
                           )}
                         </div>
-                        <div className="grid grid-cols-2 gap-3">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                           <div>
                             <p className="text-xs text-gray-400 mb-1.5">Inizio</p>
                             <input

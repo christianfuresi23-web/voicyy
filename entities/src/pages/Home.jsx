@@ -22,6 +22,10 @@ export default function Home() {
   };
 
   const openWhatsApp = (e) => {
+    const ua = navigator.userAgent || '';
+    const isIOS = /iPad|iPhone|iPod/.test(ua);
+    if (isIOS) return;
+
     if (e?.preventDefault) e.preventDefault();
     window.location.href = WHATSAPP_DEEP_URL;
     setTimeout(() => {
