@@ -1,16 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '@/api/client';
-import { verifyTOTP, TOTP_SECRET, getTOTPQRUrl } from '@/lib/totpUtils';
-import { Eye, EyeOff, LogOut, RefreshCw, Mail, ChevronDown, ChevronUp, Shield, Smartphone, Key, CheckCircle } from 'lucide-react';
-
-const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD || '';
+import { Eye, EyeOff, LogOut, RefreshCw, Mail, Shield, Smartphone, Key, CheckCircle } from 'lucide-react';
 const SECRET_WORDS = ['cane', 'lupo', 'soldi', 'pad', 'mouse', 'pulsante', 'tastiera', 'iphone', 'mini', 'giochi', 'play', 'neve'];
 const AUTH_KEY = 'voicyy_admin_auth';
-
 const STEP_PASSWORD = 1;
 const STEP_TOTP = 2;
 const STEP_WORDS = 3;
 const STEP_DASHBOARD = 4;
+
 
 export default function AdminDashboard() {
   const [step, setStep] = useState(STEP_PASSWORD);
@@ -21,7 +18,6 @@ export default function AdminDashboard() {
   const [wordBulkInput, setWordBulkInput] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [showQR, setShowQR] = useState(false);
   const [requests, setRequests] = useState([]);
   const [loadingRequests, setLoadingRequests] = useState(false);
   const [expandedId, setExpandedId] = useState(null);
@@ -33,8 +29,12 @@ export default function AdminDashboard() {
   const [paymentError, setPaymentError] = useState('');
 
   useEffect(() => {
-    const auth = sessionStorage.getItem(AUTH_KEY);
-    if (auth === 'granted') setStep(STEP_DASHBOARD);
+    (async () => {
+      try {
+        const res = await fetch('/api/admin/me', { method: 'GET' });
+        if (res.ok) setStep(STEP_DASHBOARD);
+      } catch {}
+    })();
   }, []);
 
   useEffect(() => {
@@ -46,41 +46,39 @@ export default function AdminDashboard() {
     try {
       const data = await api.entities.AgentRequest.list('-created_date', 100);
       setRequests(data);
-    } catch (e) { setError('Errore nel caricamento delle richieste.'); }
+    } catch (e) {
+      if (e?.status === 401) {
+        setError('Sessione scaduta. Accedi di nuovo.');
+        setStep(STEP_PASSWORD);
+        return;
+      }
+      setError('Errore nel caricamento delle richieste.');
+    }
     finally { setLoadingRequests(false); }
   };
 
   const handlePassword = (e) => {
     e.preventDefault();
     setError('');
-    if (!ADMIN_PASSWORD) {
-      setError('Password admin non configurata. Imposta VITE_ADMIN_PASSWORD nelle variabili d’ambiente del progetto.');
-      return;
-    }
-    if (password === ADMIN_PASSWORD) {
-      setStep(STEP_TOTP);
-    } else {
-      setError('Password errata.');
-    }
+    if (!password.trim()) return setError('Inserisci la password.');
+    setStep(STEP_TOTP);
   };
 
   const handleTOTP = async (e) => {
     e.preventDefault();
     setError('');
-    if (!TOTP_SECRET) {
-      setError('TOTP non configurato. Imposta VITE_ADMIN_TOTP_SECRET nelle variabili d’ambiente del progetto.');
-      return;
-    }
     setLoading(true);
     try {
-      const valid = await verifyTOTP(TOTP_SECRET, totpCode.trim());
-      if (valid) {
-        setStep(STEP_WORDS);
-      } else {
-        setError('Codice non valido. Controlla Google Authenticator e riprova (il codice cambia ogni 30 secondi).');
-      }
+      const res = await fetch('/api/admin/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: password.trim(), totp: totpCode.trim() }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data?.error || 'Credenziali non valide.');
+      setStep(STEP_WORDS);
     } catch (err) {
-      setError('Errore nella verifica del codice.');
+      setError(err?.message || 'Errore nella verifica del codice.');
     } finally {
       setLoading(false);
     }
@@ -93,7 +91,6 @@ export default function AdminDashboard() {
     const correct = SECRET_WORDS.map(w => w.toLowerCase());
     const allMatch = entered.every((w, i) => w === correct[i]);
     if (allMatch) {
-      sessionStorage.setItem(AUTH_KEY, 'granted');
       setStep(STEP_DASHBOARD);
     } else {
       setError('Le parole sono sbagliate o nell’ordine sbagliato. Riprova.');
@@ -101,7 +98,7 @@ export default function AdminDashboard() {
   };
 
   const handleLogout = () => {
-    sessionStorage.removeItem(AUTH_KEY);
+    fetch('/api/admin/logout', { method: 'POST' }).catch(() => {});
     setStep(STEP_PASSWORD);
     setPassword('');
     setTotpCode('');
@@ -242,24 +239,6 @@ export default function AdminDashboard() {
               <div className="bg-blue-50 rounded-xl p-4 text-sm text-blue-800">
                 <p className="font-medium mb-1 flex items-center gap-2"><Smartphone className="w-4 h-4" /> Verifica Google Authenticator</p>
                 <p className="text-blue-600">Apri Google Authenticator sul tuo telefono e inserisci il codice a 6 cifre per <strong>Voicyy Admin</strong>.</p>
-              </div>
-
-              <div>
-                <button
-                  type="button"
-                  onClick={() => setShowQR(!showQR)}
-                  disabled={!TOTP_SECRET}
-                  className="text-sm text-[#0077b6] hover:underline mb-3 flex items-center gap-1 disabled:opacity-60 disabled:hover:no-underline"
-                >
-                  {showQR ? 'Nascondi QR Code' : '📷 Prima configurazione? Scansiona il QR Code'}
-                  {showQR ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
-                </button>
-                {showQR && (
-                  <div className="text-center mb-4 p-4 bg-gray-50 rounded-xl">
-                    <img src={getTOTPQRUrl(TOTP_SECRET)} alt="QR Code Google Authenticator" className="mx-auto rounded-lg" />
-                    <p className="text-xs text-gray-400 mt-1">Scansiona una volta sola con Google Authenticator</p>
-                  </div>
-                )}
               </div>
 
               <div>

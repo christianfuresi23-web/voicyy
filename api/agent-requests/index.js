@@ -1,4 +1,5 @@
 import { sql } from "@vercel/postgres";
+import { requireAdminAuth } from "../_adminAuth.js";
 
 const readJsonBody = async (req) => {
   if (req.body && typeof req.body === "object") return req.body;
@@ -70,6 +71,8 @@ export default async function handler(req, res) {
   }
 
   if (req.method === "GET") {
+    const auth = requireAdminAuth(req, res);
+    if (!auth.ok) return;
     const url = new URL(req.url, "http://localhost");
     const limitRaw = url.searchParams.get("limit");
     const limit = Math.max(1, Math.min(200, Number(limitRaw || 100)));

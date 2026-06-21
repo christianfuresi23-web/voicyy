@@ -1,4 +1,5 @@
 import { sql } from "@vercel/postgres";
+import { requireAdminAuth } from "../_adminAuth.js";
 
 const readJsonBody = async (req) => {
   if (req.body && typeof req.body === "object") return req.body;
@@ -68,6 +69,9 @@ export default async function handler(req, res) {
   } catch (e) {
     return res.status(500).json({ error: "DB not configured", details: e?.message });
   }
+
+  const auth = requireAdminAuth(req, res);
+  if (!auth.ok) return;
 
   const url = new URL(req.url, "http://localhost");
   const id = decodeURIComponent(url.pathname.split("/").pop() || "");
