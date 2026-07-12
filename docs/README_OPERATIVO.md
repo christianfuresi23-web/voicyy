@@ -23,7 +23,7 @@ Questo elenco separa ciò che può essere sviluppato da ciò che richiede ancora
 
 - [ ] Conservare il logo originale ad alta risoluzione e con diritto d'uso documentato; verificare la versione trasparente/wordmark presente nel progetto contro l'allegato originale.
 - [ ] Archiviare il file XLSX sorgente della tabella prezzi in un'area interna controllata e riconciliare il JSON generato con ogni riga/combinazione.
-- [ ] Risolvere l'ambiguità dei markup descritti (20%, 40%, ulteriore 20%): approvare **una formula unica**, specificando se gli incrementi sono additivi o composti.
+- [x] Applicare la formula unica approvata: **costo sorgente × 1,45**.
 - [ ] Verificare che tutti i prezzi mostrati siano indicativi, coerenti fino a 10.000 minuti e distinti dall'IVA.
 - [ ] Misurare costi effettivi, arrotondamenti, valuta, minimi dei fornitori e picchi prima di usare il configuratore in produzione.
 
@@ -39,26 +39,24 @@ Questo elenco separa ciò che può essere sviluppato da ciò che richiede ancora
 
 ## Database e richieste
 
-- [ ] Creare il progetto Supabase Postgres di produzione e impostare `SUPABASE_URL` e `SUPABASE_SECRET_KEY` in Vercel, esclusivamente lato server.
+- [ ] Creare il progetto Supabase Postgres di produzione e impostare in Vercel, esclusivamente lato server, `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, `SUBMISSION_WRITE_SECRET` e `REQUEST_DATA_ENCRYPTION_KEY`; non configurare `service_role`, secret key o URL PostgreSQL sul sito.
 - [ ] Applicare `database/schema.sql`, verificare RLS/grant e generare poi una migrazione ufficiale con Supabase CLI.
 - [ ] Applicare e versionare migrazioni; testare indici, vincoli e transazioni.
-- [ ] Definire campi obbligatori, cifratura, retention, cancellazione e pseudonimizzazione dei log.
+- [x] Cifrare l'intero payload con AES-256-GCM prima del database; conservare la chiave fuori da Supabase.
 - [ ] Impedire che i dati delle richieste finiscano in log di build/runtime o analytics.
 - [ ] Configurare backup, retention e prova di ripristino.
 - [ ] Definire chi può vedere/esportare/cancellare le richieste e registrare gli accessi amministrativi.
 - [ ] Preparare procedura per accesso, rettifica, cancellazione, opposizione e portabilità.
 
-## Dashboard amministrativa
+## Visualizzatore locale delle richieste
 
-- [ ] Mantenere la route non pubblicizzata, ma non considerare il path oscuro un controllo di sicurezza.
-- [ ] Salvare soltanto hash robusti per password e frase di recupero; non commettere credenziali o parole segrete.
-- [ ] Generare un nuovo segreto TOTP server-side e mostrarne il QR soltanto dopo il primo accesso autenticato; impedirne la riapertura senza nuovo enrollment controllato.
-- [ ] Ruotare password, segreto TOTP, chiavi di sessione e frase di recupero prima del go-live, in particolare se sono comparsi in prompt, chat o ambienti di test.
-- [ ] Impostare `ADMIN_PASSWORD_HASH` come bcrypt e `ADMIN_RECOVERY_PHRASE_HASH` come bcrypt del digest SHA-256 base64url della frase normalizzata. Conservare `ADMIN_SESSION_SECRET`, `ADMIN_ENCRYPTION_KEY` e `REQUEST_FINGERPRINT_SECRET` solo nel secret store. Il TOTP viene generato al primo accesso e salvato cifrato nel database.
-- [ ] Impostare anche `CRON_SECRET` con almeno 32 byte casuali. Il Cron Vercel giornaliero `/api/cron/data-retention` applica la retention dichiarata nella Privacy Policy.
-- [ ] Aggiungere rate limiting, ritardi/lockout, sessioni brevi, cookie `HttpOnly`/`Secure`/`SameSite`, protezione CSRF e log di audit.
-- [ ] Impostare `noindex`, `no-store` e intestazioni di sicurezza; verificare che API e dati restino server-only.
-- [ ] Preparare recupero accesso che non aggiri il secondo fattore e una procedura di revoca sessioni.
+- [ ] Verificare che non esistano pagine o API web capaci di leggere le richieste.
+- [ ] Creare un LOGIN PostgreSQL dedicato, membro soltanto di `voicyy_local_reader`, con password casuale, `CONNECTION LIMIT 1` e `default_transaction_read_only=on`.
+- [ ] Conservare `LOCAL_DATABASE_URL` e `LOCAL_DATA_ENCRYPTION_KEY` esclusivamente in `.env.viewer.local` sul PC autorizzato; non copiarle in `.env.local`, GitHub, chat, log o screenshot.
+- [ ] Usare TLS `verify-full` e, se disponibile sul piano, limitare le connessioni database all'IP pubblico autorizzato.
+- [ ] Proteggere account Windows e disco, non salvare export locali non cifrati e ruotare la password del LOGIN in caso di sospetta esposizione.
+- [ ] Collaudare `npm run requests:local`: membership read-only, ruolo non privilegiato, TLS verificato, bind `127.0.0.1`, bootstrap monouso, cookie HttpOnly, decifrazione e arresto con `Ctrl+C`.
+- [ ] Generare `SUBMISSION_WRITE_SECRET` con 48 byte casuali e conservarne soltanto il digest SHA-256 nel database; generare separatamente una chiave dati di 32 byte. Verificare `pg_cron` senza endpoint HTTP amministrativi.
 
 ## Google Drive opzionale
 
@@ -76,7 +74,7 @@ Questo elenco separa ciò che può essere sviluppato da ciò che richiede ancora
 - [ ] Inizializzare Git se necessario, verificare `.gitignore` e scansionare la cronologia per segreti prima del primo push.
 - [ ] Proteggere il branch principale, richiedere review/check e limitare i collaboratori.
 - [ ] Attivare secret scanning e aggiornamenti dipendenze.
-- [ ] Non commettere `.env*`, dump database, export richieste, Service Account JSON, QR TOTP o chiavi API.
+- [ ] Non commettere `.env*`, dump database, export richieste, password del viewer, Service Account JSON o chiavi API.
 
 ## Vercel e dominio
 
@@ -96,7 +94,7 @@ Questo elenco separa ciò che può essere sviluppato da ciò che richiede ancora
 - [ ] WhatsApp apre il numero internazionale corretto con URL `wa.me` valido e messaggio codificato.
 - [ ] Salvataggio database atomico e gestione invii duplicati/retry.
 - [ ] Email Voicyy e cliente, inclusa gestione errore senza mostrare un falso successo.
-- [ ] Dashboard: enrollment TOTP iniziale, login completo, logout, scadenza sessione, rate limit e recupero.
+- [ ] Visualizzatore locale: nessuna route pubblica di lettura, ruolo PostgreSQL read-only, TLS, bind loopback e token effimero.
 - [ ] Export/Drive opzionale senza esporre credenziali o dati ad altri clienti.
 - [ ] Test con dati sintetici; cancellare i dati di prova prima della produzione.
 - [ ] Verifica responsive, accessibilità, performance, errori console/server e intestazioni di sicurezza.
@@ -110,5 +108,5 @@ Il go-live è autorizzabile solo quando:
 3. dominio email, database, segreti e backup sono di produzione;
 4. i costi reali rendono ogni configurazione sostenibile;
 5. i flussi privacy e i fornitori corrispondono alle informative;
-6. sicurezza admin e test end-to-end sono superati;
+6. sicurezza del database, visualizzatore locale e test end-to-end sono superati;
 7. nessun segreto esposto in precedenza è ancora valido.

@@ -2,7 +2,7 @@
 
 Sito istituzionale e configuratore per agenti vocali AI e chatbot su misura.
 Il progetto include homepage animata 3D, raccolta richieste, email transazionali,
-database Supabase e dashboard amministrativa con autenticazione a tre fattori.
+database Supabase e visualizzatore delle richieste eseguibile soltanto in locale.
 
 ## Funzioni principali
 
@@ -11,12 +11,14 @@ database Supabase e dashboard amministrativa con autenticazione a tre fattori.
 - Configuratore LLM/TTS/telefonia e volume da 0 a 10.000 minuti.
 - Servizi dinamici, giorni lavorativi e una o due fasce orarie.
 - Consenso contrattuale/privacy obbligatorio e marketing facoltativo separato.
-- Persistenza server-only su Supabase Postgres con RLS e nessun accesso browser.
+- Persistenza cifrata AES-256-GCM in `private.agent_requests`, schema non esposto
+  alla Data API; Supabase conserva ciphertext e non può ricostruire le PII senza
+  la chiave applicativa.
 - Email HTML separate per Voicyy e cliente tramite Resend.
-- Dashboard non linkata su `/voicyy-admin-x9k2`, protetta da password, TOTP e
-  frase di sicurezza.
-- Sessioni admin revocabili, passaggi monouso e protezione anti-replay TOTP.
-- Retention automatica giornaliera tramite Vercel Cron protetto.
+- Nessuna dashboard o API di lettura pubblica; visualizzatore locale separato,
+  vincolato a `127.0.0.1` e collegato con un ruolo PostgreSQL read-only.
+- Retention automatica giornaliera eseguita internamente da PostgreSQL con
+  `pg_cron`, senza endpoint amministrativi pubblici.
 - Google Drive predisposto ma disattivato finché non esiste un Service Account.
 
 ## Avvio locale
@@ -37,34 +39,39 @@ file versionati.
 
 1. Creare un progetto Supabase in una regione coerente con il deploy.
 2. Applicare e verificare [`database/schema.sql`](database/schema.sql).
-3. Impostare `SUPABASE_URL` e `SUPABASE_SECRET_KEY` esclusivamente lato server.
+3. Registrare il digest SHA-256 di `SUBMISSION_WRITE_SECRET` in
+   `private.request_ingress_secret`, poi configurare su Vercel soltanto
+   `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, il secret in chiaro e
+   `REQUEST_DATA_ENCRYPTION_KEY`.
 4. Eseguire gli advisor di sicurezza/performance e generare una migrazione
    ufficiale con Supabase CLI dopo la verifica dello schema.
 
-Lo schema abilita RLS su tutte le tabelle, revoca i privilegi a `anon` e
-`authenticated` e concede accesso soltanto a `service_role`. La secret key non
-deve mai avere prefisso `NEXT_PUBLIC_`.
+Le PII entrano nel database soltanto come envelope AES-256-GCM autenticato. Lo
+schema `private` non deve essere aggiunto alla Data API; le RPC pubbliche
+accettano soltanto inserimenti validati e non restituiscono righe personali. Non
+configurare `service_role`, `DATABASE_URL` o la chiave locale del viewer su
+Vercel.
 
-## Configurazione privata
+## Visualizzatore richieste privato
 
-Le variabili richieste sono documentate in [`.env.example`](.env.example).
-Password e frase di sicurezza sono salvate soltanto come hash; la password usa
-bcrypt direttamente, mentre la frase usa bcrypt sul digest SHA-256 della frase
-normalizzata. La frase
-va normalizzata in minuscolo con un singolo spazio tra le 12 parole prima di
-generare l'hash. Il segreto TOTP viene creato al primo accesso, mostrato come QR
-dopo la password e salvato cifrato AES-256-GCM nel database.
+Le richieste possono essere consultate con `npm run requests:local`. Il processo
+usa un LOGIN read-only per recuperare il ciphertext e
+`LOCAL_DATA_ENCRYPTION_KEY` per decifrarlo sul PC autorizzato. Entrambi devono
+esistere soltanto in `.env.viewer.local`. Configurazione e procedura sono descritte in
+[`docs/VISUALIZZATORE_LOCALE.md`](docs/VISUALIZZATORE_LOCALE.md).
 
 Tutte le credenziali condivise in chat o in ambienti di prova devono essere
 ruotate prima del go-live.
 
 ## Listino
 
-Il file Excel sorgente non era disponibile nel workspace. Per questo il sito
-non inventa prezzi e mostra “Listino in attesa di importazione”. La procedura e
-il formato della tabella generata sono descritti in
-[`scripts/README-pricing.md`](scripts/README-pricing.md). L'app applica una
-maggiorazione totale del 40% (`costo base × 1,40`).
+Il listino è stato importato dal foglio `Tutte le Combinazioni` del workbook
+fornito. Il JSON contiene 192 combinazioni coerenti con le opzioni esposte dal
+configuratore; `Custom LLM` resta su preventivo perché non ha un costo sorgente.
+La procedura e il formato generato sono descritti in
+[`scripts/README-pricing.md`](scripts/README-pricing.md). L'app applica la
+maggiorazione unica richiesta del 45% (`costo base × 1,45`) e mostra sia il
+prezzo al minuto sia la stima mensile fino a 10.000 minuti.
 
 ## Controlli
 
@@ -94,5 +101,5 @@ e non costituisce consulenza professionale.
 ## Asset mancanti
 
 Il wordmark SVG presente è un sostituto trasparente e provvisorio. Per
-replicare esattamente il logo originale e importare i costi reali servono
-nuovamente l'immagine sorgente e il workbook `.xlsx` citati nella richiesta.
+replicare esattamente il logo originale serve il relativo file sorgente in
+formato vettoriale o PNG trasparente ad alta risoluzione.

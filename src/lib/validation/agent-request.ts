@@ -162,14 +162,29 @@ const workingDaySchema = z
 export const agentRequestSchema = z
   .object({
     submissionId: z.string().uuid("Identificativo invio non valido"),
-    contactName: z.string().trim().min(2).max(120),
-    businessName: z.string().trim().min(2).max(160),
+    contactName: z
+      .string()
+      .trim()
+      .min(2, "Inserisci nome e cognome del referente")
+      .max(120, "Il nome del referente è troppo lungo"),
+    businessName: z
+      .string()
+      .trim()
+      .min(2, "Inserisci il nome dell’attività")
+      .max(160, "Il nome dell’attività è troppo lungo"),
     services: z
       .array(
         z
           .object({
-            name: z.string().trim().min(1).max(120),
-            durationHours: z.coerce.number().positive().max(24),
+            name: z
+              .string()
+              .trim()
+              .min(1, "Inserisci il nome del servizio")
+              .max(120, "Il nome del servizio è troppo lungo"),
+            durationHours: z.coerce
+              .number()
+              .positive("La durata deve essere maggiore di zero")
+              .max(24, "La durata non può superare 24 ore"),
           })
           .strict(),
       )
@@ -199,11 +214,16 @@ export const agentRequestSchema = z
     phone: z
       .string()
       .trim()
-      .min(6)
-      .max(32)
+      .min(6, "Inserisci un numero di telefono valido")
+      .max(32, "Il numero di telefono è troppo lungo")
       .regex(/^[+\d][\d\s()./-]*$/, "Inserisci un numero di telefono valido"),
     website: optionalWebsite,
-    details: z.string().trim().max(5000).optional().default(""),
+    details: z
+      .string()
+      .trim()
+      .max(5000, "I dettagli aggiuntivi non possono superare 5.000 caratteri")
+      .optional()
+      .default(""),
     configuration: z
       .object({
         llm: z.enum(LLM_OPTIONS),
@@ -218,7 +238,7 @@ export const agentRequestSchema = z
       error: "Devi accettare Termini e Condizioni e dichiarare di aver letto la Privacy Policy",
     }),
     marketingConsent: z.boolean(),
-    companyWebsite: z.string().max(0).optional().default(""),
+    botField: z.string().max(0).optional().default(""),
   })
   .strict()
   .superRefine((request, context) => {

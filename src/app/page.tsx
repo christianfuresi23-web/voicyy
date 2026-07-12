@@ -1,5 +1,4 @@
 import {
-  ArrowDown,
   ArrowRight,
   Bot,
   CalendarCheck2,
@@ -14,6 +13,8 @@ import {
 } from "lucide-react";
 import { AgentRequestForm } from "@/components/configurator/AgentRequestForm";
 import { Header } from "@/components/landing/Header";
+import { ImmersiveHero } from "@/components/landing/ImmersiveHero";
+import { ProcessAccordion } from "@/components/landing/ProcessAccordion";
 import { Reveal } from "@/components/landing/Reveal";
 import { VoiceScene } from "@/components/landing/VoiceScene";
 import { Wordmark } from "@/components/landing/Wordmark";
@@ -46,30 +47,70 @@ const benefits = [
   },
 ];
 
+const trustItems = (
+  <>
+    <strong>Google Calendar</strong>
+    <i aria-hidden="true" />
+    <strong>Google Drive</strong>
+    <i aria-hidden="true" />
+    <strong>Telefonia</strong>
+    <i aria-hidden="true" />
+    <strong>Chat</strong>
+  </>
+);
+
 const process = [
   {
     step: "01",
     title: "Ci racconti l’attività",
     description:
       "Servizi, tempi, orari e strumenti: il configuratore raccoglie ciò che serve per partire bene.",
+    detail:
+      "Partiamo dal lavoro reale, non da un modello generico. Organizziamo le informazioni in una mappa operativa chiara, così la demo parla già il linguaggio della tua attività.",
+    highlights: [
+      "Servizi e relative durate",
+      "Giorni, fasce orarie e pause",
+      "Contatti e strumenti già in uso",
+    ],
   },
   {
     step: "02",
     title: "Progettiamo il flusso",
     description:
       "Costruiamo conversazioni, regole di prenotazione e integrazioni attorno al tuo modo di lavorare.",
+    detail:
+      "Definiamo cosa deve chiedere l’agent, quali risposte può dare e quando deve coinvolgere una persona. Ogni passaggio resta leggibile e verificabile prima dell’attivazione.",
+    highlights: [
+      "Tono di voce e domande frequenti",
+      "Regole di disponibilità",
+      "Escalation verso il team",
+    ],
   },
   {
     step: "03",
     title: "Testiamo insieme",
     description:
       "Verifichiamo i casi reali, perfezioniamo il tono e controlliamo i passaggi più delicati.",
+    detail:
+      "Simuliamo richieste semplici, eccezioni e conversazioni incomplete. Correggiamo insieme i punti deboli prima che l’agent incontri i tuoi clienti.",
+    highlights: [
+      "Scenari realistici",
+      "Controllo delle prenotazioni",
+      "Revisione condivisa",
+    ],
   },
   {
     step: "04",
     title: "Il tuo agent va online",
     description:
       "Dopo l’approvazione, attiviamo il servizio e restiamo presenti per manutenzione e supporto.",
+    detail:
+      "La messa online avviene dopo il tuo via libera. Monitoriamo il funzionamento iniziale e interveniamo sugli aggiustamenti concordati, senza lasciarti solo dopo la consegna.",
+    highlights: [
+      "Attivazione concordata",
+      "Monitoraggio iniziale",
+      "Manutenzione e supporto",
+    ],
   },
 ];
 
@@ -102,9 +143,9 @@ export default function Home() {
     <main className="overflow-clip bg-white text-neutral-950">
       <Header />
 
-      <section className="hero-section" aria-labelledby="hero-title">
-        <div className="site-shell hero-layout">
-          <Reveal className="hero-copy">
+      <ImmersiveHero
+        copy={
+          <div className="hero-copy">
             <div className="hero-kicker">
               <span className="hero-kicker__pulse" aria-hidden="true" />
               Agent vocali AI e chatbot, su misura
@@ -150,9 +191,10 @@ export default function Home() {
                 Supporto in italiano
               </li>
             </ul>
-          </Reveal>
-
-          <Reveal className="hero-scene-wrap" delay={0.12}>
+          </div>
+        }
+        scene={
+          <div className="hero-scene-wrap">
             <VoiceScene />
             <div className="scene-note scene-note--top" aria-hidden="true">
               <span>Chiamata in corso</span>
@@ -165,26 +207,20 @@ export default function Home() {
                 Appuntamento confermato
               </span>
             </div>
-          </Reveal>
-        </div>
-
-        <a href="#vantaggi" className="scroll-cue" aria-label="Scorri ai vantaggi">
-          <span>Scopri come</span>
-          <ArrowDown aria-hidden="true" size={16} />
-        </a>
-      </section>
+          </div>
+        }
+      />
 
       <section className="trust-strip" aria-label="Integrazioni e capacità">
         <div className="site-shell trust-strip__inner">
           <span>Un solo flusso, intorno alla tua attività</span>
-          <div aria-label="Tecnologie integrabili">
-            <strong>Google Calendar</strong>
-            <i aria-hidden="true" />
-            <strong>Google Drive</strong>
-            <i aria-hidden="true" />
-            <strong>Telefonia</strong>
-            <i aria-hidden="true" />
-            <strong>Chat</strong>
+          <div className="trust-strip__marquee" aria-label="Tecnologie integrabili">
+            <div className="trust-strip__track">
+              <div className="trust-strip__items">{trustItems}</div>
+              <div className="trust-strip__items" aria-hidden="true">
+                {trustItems}
+              </div>
+            </div>
           </div>
         </div>
       </section>
@@ -260,20 +296,9 @@ export default function Home() {
             </div>
           </Reveal>
 
-          <ol className="process-list">
-            {process.map((item, index) => (
-              <Reveal key={item.step} delay={index * 0.06}>
-                <li className="process-item">
-                  <span className="process-item__step">{item.step}</span>
-                  <div>
-                    <h3>{item.title}</h3>
-                    <p>{item.description}</p>
-                  </div>
-                  <ArrowRight aria-hidden="true" className="process-item__arrow" />
-                </li>
-              </Reveal>
-            ))}
-          </ol>
+          <Reveal>
+            <ProcessAccordion items={process} />
+          </Reveal>
         </div>
       </section>
 

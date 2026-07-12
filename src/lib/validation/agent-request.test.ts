@@ -26,7 +26,7 @@ const validRequest = {
   },
   termsAccepted: true,
   marketingConsent: false,
-  companyWebsite: "",
+  botField: "",
 };
 
 describe("agentRequestSchema", () => {
@@ -69,7 +69,7 @@ describe("agentRequestSchema", () => {
     expect(
       agentRequestSchema.safeParse({
         ...validRequest,
-        companyWebsite: "spam.example",
+        botField: "spam.example",
       }).success,
     ).toBe(false);
   });

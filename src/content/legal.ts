@@ -9,6 +9,7 @@ export type LegalSection = {
 export type LegalDocument = {
   title: string;
   updated: string;
+  updatedDate: string;
   introduction?: string;
   sections: readonly LegalSection[];
 };
@@ -16,6 +17,7 @@ export type LegalDocument = {
 export const termsDocument: LegalDocument = {
   title: "Termini e Condizioni di Vendita",
   updated: "Ultimo aggiornamento: giugno 2025",
+  updatedDate: "2025-06",
   sections: [
     {
       id: "soggetto-titolare-e-generalita",
@@ -119,6 +121,7 @@ export const termsDocument: LegalDocument = {
 export const privacyDocument: LegalDocument = {
   title: "Informativa sulla Privacy",
   updated: "Ultimo aggiornamento: luglio 2026",
+  updatedDate: "2026-07",
   introduction: "Ai sensi del Regolamento UE 2016/679 (GDPR)",
   sections: [
     {
@@ -140,7 +143,7 @@ export const privacyDocument: LegalDocument = {
         "Dati aziendali: nome dell'attività, sito web, servizi offerti, orari di lavoro;",
         "Dati tecnici: configurazione dell'agente AI richiesta (LLM, TTS, telefonia, volume minuti);",
         "Dati di integrazione: indirizzo email Google Calendar, ID cartella Google Drive per le sole finalità tecniche di configurazione.",
-        "Dati tecnici di sicurezza pseudonimizzati: hash crittografici dell'indirizzo IP e, per i soli accessi amministrativi, dello user agent. Gli indirizzi IP in chiaro non vengono conservati nel database delle richieste.",
+        "Dati tecnici di sicurezza pseudonimizzati: hash HMAC dell'indirizzo IP usato esclusivamente per limitare abusi e invii ripetuti. Gli indirizzi IP in chiaro non vengono conservati nel database delle richieste.",
       ],
     },
     {
@@ -152,7 +155,7 @@ export const privacyDocument: LegalDocument = {
         "B) Marketing e comunicazioni commerciali",
         "Base giuridica: consenso dell'interessato (Art. 6, par. 1, lett. a GDPR). Solo se l'utente fornisce il consenso apposito (casella 2 del modulo), Voicyy potrà utilizzare i dati per inviare newsletter, aggiornamenti e offerte commerciali. Il consenso è revocabile in qualsiasi momento.",
         "C) Sicurezza, prevenzione degli abusi e tutela del servizio",
-        "Base giuridica: legittimo interesse del Titolare a proteggere il sito, il modulo e la dashboard amministrativa da accessi non autorizzati, spam e frodi (Art. 6, par. 1, lett. f GDPR). Gli identificativi tecnici sono pseudonimizzati mediante HMAC e non vengono usati per profilazione o marketing.",
+        "Base giuridica: legittimo interesse del Titolare a proteggere il sito, il modulo e l'infrastruttura di raccolta da accessi non autorizzati, spam e frodi (Art. 6, par. 1, lett. f GDPR). Gli identificativi tecnici sono pseudonimizzati mediante HMAC e non vengono usati per profilazione o marketing.",
       ],
     },
     {
@@ -173,7 +176,7 @@ export const privacyDocument: LegalDocument = {
       paragraphs: [
         "I dati relativi alle richieste di servizio sono conservati per il periodo necessario all'esecuzione del contratto e per i successivi 10 anni per obblighi fiscali e contabili (D.P.R. 600/1973).",
         "I dati trattati per finalità di marketing sono conservati fino alla revoca del consenso o, in assenza di revoca, per un massimo di 24 mesi dall'ultima interazione.",
-        "I contatori pseudonimizzati usati per limitare gli abusi sono eliminati entro 48 ore; i log pseudonimizzati degli accessi amministrativi sono eliminati entro 90 giorni. Un processo automatico giornaliero applica queste scadenze e disattiva i consensi marketing scaduti.",
+        "I contatori pseudonimizzati usati per limitare gli abusi sono eliminati entro 48 ore. Un processo automatico giornaliero applica questa scadenza, la conservazione prevista per le richieste e la disattivazione dei consensi marketing scaduti.",
       ],
     },
     {
@@ -187,6 +190,7 @@ export const privacyDocument: LegalDocument = {
       ],
       afterParagraphs: [
         "Alcuni fornitori potrebbero operare al di fuori dell'UE (es. USA). In tal caso, il trasferimento avviene nel rispetto delle garanzie previste dal GDPR (Decisioni di adeguatezza, Clausole Contrattuali Standard).",
+        "Le richieste archiviate nel database applicativo sono protette con cifratura AES-256-GCM prima del salvataggio. La chiave di decifratura è conservata separatamente dal database e l'accesso operativo avviene tramite strumenti riservati al Titolare.",
       ],
     },
     {

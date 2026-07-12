@@ -4,14 +4,15 @@ import {
   ArrowRight,
   Check,
   CircleHelp,
+  Clock3,
   LoaderCircle,
   Minus,
   Plus,
   ShieldCheck,
   Sparkles,
 } from "lucide-react";
-import { FormEvent, useMemo, useRef, useState } from "react";
-import { calculateMonthlyPrice } from "@/data/pricing";
+import { FormEvent, useMemo, useRef, useState, type CSSProperties } from "react";
+import { calculateMonthlyPrice, calculatePricePerMinute } from "@/data/pricing";
 
 const LLM_OPTIONS = [
   "GPT 5.5",
@@ -152,6 +153,16 @@ export function AgentRequestForm() {
     [llm, textToSpeech, telephony, minutes],
   );
 
+  const estimatedMinutePrice = useMemo(
+    () =>
+      calculatePricePerMinute({
+        llm,
+        textToSpeech,
+        telephony,
+      }),
+    [llm, textToSpeech, telephony],
+  );
+
   const formattedPrice =
     estimatedMonthlyPrice === null
       ? null
@@ -160,6 +171,18 @@ export function AgentRequestForm() {
           currency: "EUR",
           maximumFractionDigits: 2,
         }).format(estimatedMonthlyPrice);
+
+  const formattedMinutePrice =
+    estimatedMinutePrice === null
+      ? null
+      : new Intl.NumberFormat("it-IT", {
+          style: "currency",
+          currency: "EUR",
+          minimumFractionDigits: 5,
+          maximumFractionDigits: 5,
+        }).format(estimatedMinutePrice);
+
+  const rangeProgress = (minutes / 10_000) * 100;
 
   function updateService(id: string, key: "name" | "durationHours", value: string) {
     setServices((current) =>
@@ -299,7 +322,7 @@ export function AgentRequestForm() {
       },
       termsAccepted: formData.get("termsAccepted") === "on",
       marketingConsent: formData.get("marketingConsent") === "on",
-      companyWebsite: String(formData.get("companyWebsite") ?? ""),
+      botField: String(formData.get("botField") ?? ""),
     };
 
     try {
@@ -314,12 +337,19 @@ export function AgentRequestForm() {
             error?: string;
             referenceCode?: string;
             confirmationEmailAccepted?: boolean;
+            fields?: Record<string, string[] | undefined>;
           }
         | null;
 
       if (!response.ok) {
+        const fieldMessages = result?.fields
+          ? [...new Set(Object.values(result.fields).flatMap((messages) => messages ?? []))]
+          : [];
         throw new Error(
-          result?.error ?? "Non è stato possibile inviare la richiesta. Riprova tra poco.",
+          [
+            result?.error ?? "Non è stato possibile inviare la richiesta. Riprova tra poco.",
+            ...fieldMessages.slice(0, 4),
+          ].join(" "),
         );
       }
 
@@ -346,13 +376,13 @@ export function AgentRequestForm() {
   return (
     <form ref={formRef} onSubmit={handleSubmit} className="request-form">
       <div className="honeypot" aria-hidden="true">
-        <label htmlFor="companyWebsite">Sito aziendale di conferma</label>
+        <label htmlFor="botField">Lascia vuoto questo campo</label>
         <input
-          id="companyWebsite"
-          name="companyWebsite"
+          id="botField"
+          name="botField"
           type="text"
           tabIndex={-1}
-          autoComplete="off"
+          autoComplete="new-password"
         />
       </div>
 
@@ -377,6 +407,8 @@ export function AgentRequestForm() {
             type="text"
             autoComplete="name"
             placeholder="Mario Rossi"
+            minLength={2}
+            maxLength={120}
             required
           />
         </label>
@@ -390,6 +422,8 @@ export function AgentRequestForm() {
             type="text"
             autoComplete="organization"
             placeholder="Studio Rossi"
+            minLength={2}
+            maxLength={160}
             required
           />
         </label>
@@ -420,6 +454,7 @@ export function AgentRequestForm() {
                   id={`${service.id}-name`}
                   type="text"
                   placeholder="es. Igiene dentale"
+                  maxLength={120}
                   value={service.name}
                   onChange={(event) =>
                     updateService(service.id, "name", event.target.value)
@@ -493,26 +528,32 @@ export function AgentRequestForm() {
             <span className="schedule-range__label">Prima fascia</span>
             <label htmlFor="firstStart">
               <span>Inizio</span>
-              <input
-                id="firstStart"
-                className="field-control"
-                type="time"
-                value={firstStart}
-                onChange={(event) => setFirstStart(event.target.value)}
-                required
-              />
+              <span className="time-field">
+                <Clock3 className="time-field__icon" aria-hidden="true" size={17} />
+                <input
+                  id="firstStart"
+                  className="field-control time-control"
+                  type="time"
+                  value={firstStart}
+                  onChange={(event) => setFirstStart(event.target.value)}
+                  required
+                />
+              </span>
             </label>
             <span className="schedule-range__dash" aria-hidden="true" />
             <label htmlFor="firstEnd">
               <span>Fine</span>
-              <input
-                id="firstEnd"
-                className="field-control"
-                type="time"
-                value={firstEnd}
-                onChange={(event) => setFirstEnd(event.target.value)}
-                required
-              />
+              <span className="time-field">
+                <Clock3 className="time-field__icon" aria-hidden="true" size={17} />
+                <input
+                  id="firstEnd"
+                  className="field-control time-control"
+                  type="time"
+                  value={firstEnd}
+                  onChange={(event) => setFirstEnd(event.target.value)}
+                  required
+                />
+              </span>
             </label>
           </div>
 
@@ -521,26 +562,32 @@ export function AgentRequestForm() {
               <span className="schedule-range__label">Seconda fascia</span>
               <label htmlFor="secondStart">
                 <span>Inizio</span>
-                <input
-                  id="secondStart"
-                  className="field-control"
-                  type="time"
-                  value={secondStart}
-                  onChange={(event) => setSecondStart(event.target.value)}
-                  required
-                />
+                <span className="time-field">
+                  <Clock3 className="time-field__icon" aria-hidden="true" size={17} />
+                  <input
+                    id="secondStart"
+                    className="field-control time-control"
+                    type="time"
+                    value={secondStart}
+                    onChange={(event) => setSecondStart(event.target.value)}
+                    required
+                  />
+                </span>
               </label>
               <span className="schedule-range__dash" aria-hidden="true" />
               <label htmlFor="secondEnd">
                 <span>Fine</span>
-                <input
-                  id="secondEnd"
-                  className="field-control"
-                  type="time"
-                  value={secondEnd}
-                  onChange={(event) => setSecondEnd(event.target.value)}
-                  required
-                />
+                <span className="time-field">
+                  <Clock3 className="time-field__icon" aria-hidden="true" size={17} />
+                  <input
+                    id="secondEnd"
+                    className="field-control time-control"
+                    type="time"
+                    value={secondEnd}
+                    onChange={(event) => setSecondEnd(event.target.value)}
+                    required
+                  />
+                </span>
               </label>
             </div>
           )}
@@ -581,6 +628,7 @@ export function AgentRequestForm() {
             type="email"
             autoComplete="email"
             placeholder="agenda@attivita.it"
+            maxLength={254}
             required
           />
         </label>
@@ -604,6 +652,9 @@ export function AgentRequestForm() {
             name="driveFolderId"
             type="text"
             placeholder="1AbC…xyz"
+            maxLength={200}
+            pattern="[A-Za-z0-9_-]+"
+            title="Inserisci soltanto l’ID della cartella, senza il link completo"
           />
         </label>
 
@@ -616,6 +667,7 @@ export function AgentRequestForm() {
             type="email"
             autoComplete="email"
             placeholder="notifiche@attivita.it"
+            maxLength={254}
             required
           />
         </label>
@@ -629,6 +681,7 @@ export function AgentRequestForm() {
             type="email"
             autoComplete="email"
             placeholder="mario@attivita.it"
+            maxLength={254}
             required
           />
         </label>
@@ -642,6 +695,9 @@ export function AgentRequestForm() {
             type="tel"
             autoComplete="tel"
             placeholder="+39 333 123 4567"
+            minLength={6}
+            maxLength={32}
+            pattern="[+0-9][0-9 ()/.-]*"
             required
           />
         </label>
@@ -655,6 +711,7 @@ export function AgentRequestForm() {
             type="url"
             autoComplete="url"
             placeholder="https://www.attivita.it"
+            maxLength={2048}
           />
         </label>
       </div>
@@ -666,6 +723,7 @@ export function AgentRequestForm() {
           id="details"
           name="details"
           rows={5}
+          maxLength={5000}
           placeholder="Raccontaci esigenze particolari, tono di voce, domande frequenti o integrazioni utili…"
         />
       </label>
@@ -717,17 +775,32 @@ export function AgentRequestForm() {
               {minutes.toLocaleString("it-IT")} <small>min</small>
             </output>
           </div>
-          <input
-            id="minutes"
-            name="minutes"
-            className="range-control"
-            type="range"
-            min="0"
-            max="10000"
-            step="50"
-            value={minutes}
-            onChange={(event) => setMinutes(Number(event.target.value))}
-          />
+          <div
+            className="range-stage"
+            style={{ "--range-progress": `${rangeProgress}%` } as CSSProperties}
+          >
+            <span className="range-visual" aria-hidden="true">
+              <span className="range-visual__fill" />
+              <span className="range-visual__pulse" />
+            </span>
+            <input
+              id="minutes"
+              name="minutes"
+              className="range-control"
+              type="range"
+              min="0"
+              max="10000"
+              step="50"
+              value={minutes}
+              aria-valuetext={`${minutes.toLocaleString("it-IT")} minuti mensili`}
+              aria-describedby="minutes-help"
+              onChange={(event) => setMinutes(Number(event.target.value))}
+            />
+          </div>
+          <span id="minutes-help" className="sr-only">
+            Usa le frecce della tastiera per modificare la stima a intervalli di 50
+            minuti.
+          </span>
           <div className="range-labels" aria-hidden="true">
             <span>0</span>
             <span>10.000</span>
@@ -738,14 +811,28 @@ export function AgentRequestForm() {
           <div className="estimate-card__icon">
             <Sparkles aria-hidden="true" size={20} />
           </div>
-          <div>
-            <span>Stima traffico mensile</span>
-            {formattedPrice ? (
-              <strong>{formattedPrice}</strong>
+          <div className="estimate-card__content">
+            {formattedPrice && formattedMinutePrice ? (
+              <div className="estimate-card__pricing">
+                <div>
+                  <span>Prezzo al minuto</span>
+                  <strong>
+                    {formattedMinutePrice}
+                    <small>/min</small>
+                  </strong>
+                </div>
+                <div>
+                  <span>Stima mensile</span>
+                  <strong>{formattedPrice}</strong>
+                </div>
+              </div>
             ) : (
-              <strong className="estimate-card__pending">
-                Listino in attesa di importazione
-              </strong>
+              <div>
+                <span>Stima traffico mensile</span>
+                <strong className="estimate-card__pending">
+                  Combinazione senza prezzo disponibile
+                </strong>
+              </div>
             )}
             <p>
               Valore indicativo. Il preventivo finale dipende dai requisiti validati e

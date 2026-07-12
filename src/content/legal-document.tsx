@@ -68,7 +68,7 @@ export function LegalDocument({ document }: { document: LegalDocumentContent }) 
           {document.introduction ? (
             <p className={styles.introduction}>{document.introduction}</p>
           ) : null}
-          <time className={styles.updated} dateTime="2025-06">
+          <time className={styles.updated} dateTime={document.updatedDate}>
             {document.updated}
           </time>
         </header>

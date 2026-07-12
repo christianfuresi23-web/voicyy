@@ -1,6 +1,6 @@
 import pricingTable from "./pricing.generated.json";
 
-export const PRICING_MARKUP = 1.4;
+export const PRICING_MARKUP = 1.45;
 
 type PricingInput = {
   llm: string;
@@ -25,11 +25,27 @@ export function pricingKey({
     .join("|");
 }
 /**
- * Returns the estimated monthly usage price after Voicyy's 40% markup.
+ * Returns the customer price per minute after Voicyy's 45% markup.
  * The generated table stores the source cost per minute for each exact
  * LLM/TTS/telephony combination. A missing combination intentionally returns
- * null: prices must never be guessed when the reviewed workbook is absent.
+ * null: prices must never be guessed for configurations absent from the
+ * reviewed workbook.
  */
+export function calculatePricePerMinute({
+  llm,
+  textToSpeech,
+  telephony,
+}: Omit<PricingInput, "minutes">): number | null {
+  const sourceRate = baseRates[pricingKey({ llm, textToSpeech, telephony })];
+
+  if (typeof sourceRate !== "number" || sourceRate < 0) {
+    return null;
+  }
+
+  return Math.round(sourceRate * PRICING_MARKUP * 1_000_000) / 1_000_000;
+}
+
+/** Returns the estimated monthly usage price for 0–10,000 minutes. */
 export function calculateMonthlyPrice({
   llm,
   textToSpeech,
@@ -40,11 +56,12 @@ export function calculateMonthlyPrice({
     return null;
   }
 
-  const sourceRate = baseRates[pricingKey({ llm, textToSpeech, telephony })];
+  const pricePerMinute = calculatePricePerMinute({
+    llm,
+    textToSpeech,
+    telephony,
+  });
+  if (pricePerMinute === null) return null;
 
-  if (typeof sourceRate !== "number" || sourceRate < 0) {
-    return null;
-  }
-
-  return Math.round(sourceRate * PRICING_MARKUP * minutes * 100) / 100;
+  return Math.round(pricePerMinute * minutes * 100) / 100;
 }

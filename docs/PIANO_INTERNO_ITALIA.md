@@ -144,14 +144,14 @@ Per LLM, TTS, telefonia, hosting, database, email, Calendar e Drive:
 
 - cifratura in transito e, ove disponibile, a riposo;
 - segreti solo in secret manager/variabili server, mai in repository o browser;
-- accesso admin con password robusta, TOTP, sessioni brevi, rate limiting, lockout, CSRF e log di audit;
+- nessuna dashboard pubblica di lettura; accesso alle richieste soltanto dal visualizzatore locale con ruolo PostgreSQL dedicato e read-only;
 - ruoli e minimo privilegio per database, Drive, Calendar e supporto;
 - backup cifrati, test di ripristino e retention definita;
 - logging senza contenuti sensibili non necessari;
 - patching, dipendenze, scansione vulnerabilità e revisione accessi;
 - piano incidenti e data breach, con valutazione della notifica al Garante entro 72 ore quando ricorrono i presupposti dell'art. 33 GDPR.
 
-Un URL admin “segreto” riduce solo rumore automatico: non è una misura di autenticazione. Le credenziali già condivise in chat o durante lo sviluppo vanno ruotate prima del go-live.
+Il solo bind su `127.0.0.1` non protegge una credenziale database rubata: applicare minimo privilegio, TLS, protezione del PC e, quando disponibile, restrizioni di rete. Le credenziali già condivise in chat o durante lo sviluppo vanno ruotate prima del go-live.
 
 ## 6. Lavoro, collaboratori e proprietà intellettuale
 
