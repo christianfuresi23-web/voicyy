@@ -1,5 +1,7 @@
 import { createDecipheriv, randomBytes, timingSafeEqual } from "node:crypto";
+import { readFileSync } from "node:fs";
 import { createServer } from "node:http";
+import { resolve } from "node:path";
 
 import postgres from "postgres";
 
@@ -329,6 +331,21 @@ function readFormBody(request) {
 const connectionUrl = process.env.LOCAL_DATABASE_URL?.trim();
 if (!connectionUrl) fatal("LOCAL_DATABASE_URL non è configurata in .env.viewer.local.");
 
+const caFile = process.env.LOCAL_DATABASE_CA_FILE?.trim();
+if (!caFile) {
+  fatal("LOCAL_DATABASE_CA_FILE non è configurata in .env.viewer.local.");
+}
+
+let databaseCa;
+try {
+  databaseCa = readFileSync(resolve(caFile), "utf8");
+} catch {
+  fatal("Il certificato CA PostgreSQL indicato non è leggibile.");
+}
+if (!databaseCa.includes("-----BEGIN CERTIFICATE-----")) {
+  fatal("Il certificato CA PostgreSQL non è in formato PEM valido.");
+}
+
 let parsedConnection;
 try {
   parsedConnection = new URL(connectionUrl);
@@ -352,7 +369,7 @@ const sql = postgres(connectionUrl, {
   max: 1,
   max_lifetime: 60 * 30,
   prepare: false,
-  ssl: "verify-full",
+  ssl: { ca: databaseCa, rejectUnauthorized: true },
 });
 
 let identity;

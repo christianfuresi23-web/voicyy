@@ -16,7 +16,7 @@ import { Header } from "@/components/landing/Header";
 import { ImmersiveHero } from "@/components/landing/ImmersiveHero";
 import { ProcessAccordion } from "@/components/landing/ProcessAccordion";
 import { Reveal } from "@/components/landing/Reveal";
-import { VoiceScene } from "@/components/landing/VoiceScene";
+import { ScrollJourney } from "@/components/landing/ScrollJourney";
 import { Wordmark } from "@/components/landing/Wordmark";
 
 const whatsappHref =
@@ -140,8 +140,10 @@ const scenarios = [
 
 export default function Home() {
   return (
-    <main className="overflow-clip bg-white text-neutral-950">
+    <ScrollJourney>
       <Header />
+
+      <main className="overflow-clip bg-white text-neutral-950">
 
       <ImmersiveHero
         copy={
@@ -193,22 +195,6 @@ export default function Home() {
             </ul>
           </div>
         }
-        scene={
-          <div className="hero-scene-wrap">
-            <VoiceScene />
-            <div className="scene-note scene-note--top" aria-hidden="true">
-              <span>Chiamata in corso</span>
-              <strong>00:42</strong>
-            </div>
-            <div className="scene-note scene-note--bottom" aria-hidden="true">
-              <CalendarCheck2 size={17} />
-              <span>
-                <small>Agenda aggiornata</small>
-                Appuntamento confermato
-              </span>
-            </div>
-          </div>
-        }
       />
 
       <section className="trust-strip" aria-label="Integrazioni e capacità">
@@ -225,7 +211,12 @@ export default function Home() {
         </div>
       </section>
 
-      <section id="vantaggi" className="dark-section" aria-labelledby="benefits-title">
+      <section
+        id="vantaggi"
+        className="dark-section"
+        aria-labelledby="benefits-title"
+        data-journey-stop="vantaggi"
+      >
         <div className="site-shell">
           <Reveal className="section-heading section-heading--light">
             <div>
@@ -280,7 +271,12 @@ export default function Home() {
         </div>
       </section>
 
-      <section id="come-funziona" className="process-section" aria-labelledby="process-title">
+      <section
+        id="come-funziona"
+        className="process-section"
+        aria-labelledby="process-title"
+        data-journey-stop="processo"
+      >
         <div className="site-shell">
           <Reveal className="section-heading">
             <div>
@@ -302,7 +298,11 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="human-section" aria-labelledby="human-title">
+      <section
+        className="human-section"
+        aria-labelledby="human-title"
+        data-journey-stop="tono-umano"
+      >
         <div className="site-shell human-layout">
           <Reveal className="human-visual">
             <div className="conversation-window" aria-hidden="true">
@@ -362,7 +362,12 @@ export default function Home() {
         </div>
       </section>
 
-      <section id="scenari" className="scenarios-section" aria-labelledby="scenarios-title">
+      <section
+        id="scenari"
+        className="scenarios-section"
+        aria-labelledby="scenarios-title"
+        data-journey-stop="scenari"
+      >
         <div className="site-shell">
           <Reveal className="section-heading">
             <div>
@@ -398,7 +403,12 @@ export default function Home() {
         </div>
       </section>
 
-      <section id="configura" className="configurator-section" aria-labelledby="config-title">
+      <section
+        id="configura"
+        className="configurator-section"
+        aria-labelledby="config-title"
+        data-journey-stop="configuratore"
+      >
         <div className="site-shell">
           <Reveal className="configurator-intro">
             <div>
@@ -411,13 +421,17 @@ export default function Home() {
             </p>
           </Reveal>
 
-          <Reveal className="form-shell">
+          <Reveal className="form-shell" replay={false}>
             <AgentRequestForm />
           </Reveal>
         </div>
       </section>
 
-      <section className="contact-cta" aria-labelledby="contact-title">
+      <section
+        className="contact-cta"
+        aria-labelledby="contact-title"
+        data-journey-stop="contatto"
+      >
         <div className="site-shell">
           <Reveal className="contact-cta__card">
             <div>
@@ -443,7 +457,7 @@ export default function Home() {
         </div>
       </section>
 
-      <footer className="site-footer">
+      <footer className="site-footer" data-journey-stop="footer">
         <div className="site-shell">
           <div className="footer-main">
             <div>
@@ -488,6 +502,7 @@ export default function Home() {
         <MessageCircle aria-hidden="true" size={22} />
         <span>Parliamone</span>
       </a>
-    </main>
+      </main>
+    </ScrollJourney>
   );
 }

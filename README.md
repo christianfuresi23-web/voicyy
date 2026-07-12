@@ -98,8 +98,9 @@ Prima della pubblicazione seguire
 legale interno è in [`docs/PIANO_INTERNO_ITALIA.md`](docs/PIANO_INTERNO_ITALIA.md)
 e non costituisce consulenza professionale.
 
-## Asset mancanti
+## Identità visiva
 
-Il wordmark SVG presente è un sostituto trasparente e provvisorio. Per
-replicare esattamente il logo originale serve il relativo file sorgente in
-formato vettoriale o PNG trasparente ad alta risoluzione.
+La homepage usa due pose WebP trasparenti della mascotte Voicyy: la posa di
+discesa e quella di ritorno sono asset distinti, così la risalita non riproduce
+la stessa animazione al contrario. Il wordmark resta in SVG trasparente per
+conservare bordi nitidi su schermi ad alta densità.

@@ -36,13 +36,19 @@ end
 $roles$;
 
 alter role voicyy_ingress_owner
-  nologin noinherit nosuperuser nocreatedb nocreaterole noreplication nobypassrls;
+  nologin noinherit nocreatedb nocreaterole;
 alter role voicyy_local_reader
-  nologin inherit nosuperuser nocreatedb nocreaterole noreplication nobypassrls;
+  nologin inherit nocreatedb nocreaterole;
+
+-- Supabase's managed `postgres` role is not a superuser. Temporary membership
+-- is required to transfer object ownership to the NOLOGIN least-privilege
+-- owner; it is revoked at the end of the migration.
+grant voicyy_ingress_owner to postgres;
 
 grant usage on schema private to voicyy_ingress_owner, voicyy_local_reader;
 grant usage on schema public to voicyy_ingress_owner;
 grant usage on schema extensions to voicyy_ingress_owner;
+grant create on schema private, public to voicyy_ingress_owner;
 
 create table if not exists private.agent_requests (
   id bigint generated always as identity primary key,
@@ -259,10 +265,10 @@ begin
     return 0;
   end if;
 
-  return pg_catalog.greatest(
+  return greatest(
     1,
     pg_catalog.ceil(
-      pg_catalog.extract(epoch from (
+      extract(epoch from (
         v_window_started + interval '1 hour' - p_now
       ))
     )::integer
@@ -355,9 +361,10 @@ begin
 
   for v_attempt in 1..5 loop
     v_reference := 'VY-' || pg_catalog.upper(
-      pg_catalog.substring(
-        pg_catalog.replace(pg_catalog.gen_random_uuid()::text, '-', '')
-        from 1 for 16
+      pg_catalog.substr(
+        pg_catalog.replace(pg_catalog.gen_random_uuid()::text, '-', ''),
+        1,
+        16
       )
     );
 
@@ -450,17 +457,17 @@ begin
   update private.agent_requests as request
   set
     owner_email_status = v_owner_status,
-    owner_email_attempted_at = pg_catalog.nullif(
+    owner_email_attempted_at = nullif(
       p_delivery#>>'{owner,attemptedAt}', ''
     )::timestamptz,
-    owner_email_accepted_at = pg_catalog.nullif(
+    owner_email_accepted_at = nullif(
       p_delivery#>>'{owner,acceptedAt}', ''
     )::timestamptz,
     client_email_status = v_client_status,
-    client_email_attempted_at = pg_catalog.nullif(
+    client_email_attempted_at = nullif(
       p_delivery#>>'{client,attemptedAt}', ''
     )::timestamptz,
-    client_email_accepted_at = pg_catalog.nullif(
+    client_email_accepted_at = nullif(
       p_delivery#>>'{client,acceptedAt}', ''
     )::timestamptz,
     drive_status = v_drive_status,
@@ -540,6 +547,9 @@ begin
   );
 end
 $cron$;
+
+revoke voicyy_ingress_owner from postgres;
+revoke create on schema private, public from voicyy_ingress_owner;
 
 -- Create the PC-only login separately with a unique password:
 -- create role voicyy_local_viewer

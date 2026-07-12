@@ -49,14 +49,30 @@ Creare `.env.viewer.local` sul solo PC autorizzato e inserirvi esclusivamente:
 
 ```dotenv
 LOCAL_DATABASE_URL=postgresql://voicyy_local_viewer:<PASSWORD_URL_ENCODED>@<HOST>:5432/postgres?sslmode=verify-full
+LOCAL_DATABASE_CA_FILE=certs/supabase-pooler-ca.pem
 LOCAL_DATA_ENCRYPTION_KEY=<STESSA_CHIAVE_BASE64_DI_REQUEST_DATA_ENCRYPTION_KEY>
 LOCAL_VIEWER_PORT=4317
 ```
 
+Scaricare il certificato root ufficiale Supabase nel percorso indicato:
+
+```powershell
+New-Item -ItemType Directory -Force certs | Out-Null
+Invoke-WebRequest `
+  -Uri "https://supabase-downloads.s3-ap-southeast-1.amazonaws.com/prod/ssl/prod-ca-2021.crt" `
+  -OutFile "certs/supabase-pooler-ca.pem"
+```
+
+Verificare anche nel pannello **Connect** di Supabase che il certificato root
+proposto per il progetto sia ancora `Supabase Root 2021 CA` prima di avviare il
+programma.
+
 La connessione diretta Supabase usa IPv6. Su una rete solo IPv4 si può usare il
 pooler in modalità sessione; il nome utente del pooler può includere il project
 ref. Il programma impone TLS `verify-full`: usare hostname e certificato CA
-indicati nel pannello Database di Supabase.
+indicati nel pannello Database di Supabase. Il file CA configurato viene letto
+localmente e usato con verifica della catena e dell'hostname; non usare
+`sslmode=require` e non disabilitare `rejectUnauthorized`.
 
 `LOCAL_DATABASE_URL` non deve essere aggiunta alle variabili Vercel o al file
 `.env.local` del sito. `LOCAL_DATA_ENCRYPTION_KEY` deve corrispondere alla chiave
