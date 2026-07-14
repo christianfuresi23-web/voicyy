@@ -171,10 +171,16 @@ export function ScrollJourney({ children }: ScrollJourneyProps) {
   const opacity = useMotionValue(0);
   const routeTarget = useMotionValue(0);
   const routeBlend = useSpring(routeTarget, {
-    stiffness: 390,
-    damping: 42,
-    mass: 0.55,
+    stiffness: 280,
+    damping: 38,
+    mass: 0.8,
   });
+
+  const smoothX = useSpring(x, { stiffness: 150, damping: 30, mass: 0.6 });
+  const smoothY = useSpring(y, { stiffness: 150, damping: 30, mass: 0.6 });
+  const smoothScale = useSpring(scale, { stiffness: 180, damping: 35 });
+  const smoothRotate = useSpring(rotate, { stiffness: 120, damping: 40 });
+  const smoothOpacity = useSpring(opacity, { stiffness: 100, damping: 25 });
 
   useEffect(() => {
     if (shouldReduceMotion) {
@@ -355,7 +361,13 @@ export function ScrollJourney({ children }: ScrollJourneyProps) {
         className="journey-mascot"
         data-direction={direction}
         data-stop={activeAnchor.id}
-        style={{ x, y, scale, rotate, opacity }}
+        style={{
+          x: smoothX,
+          y: smoothY,
+          scale: smoothScale,
+          rotate: smoothRotate,
+          opacity: smoothOpacity,
+        }}
         aria-hidden="true"
       >
         <div className="journey-mascot__anchor">

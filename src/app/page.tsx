@@ -18,6 +18,9 @@ import { ProcessAccordion } from "@/components/landing/ProcessAccordion";
 import { Reveal } from "@/components/landing/Reveal";
 import { ScrollJourney } from "@/components/landing/ScrollJourney";
 import { Wordmark } from "@/components/landing/Wordmark";
+import { ParallaxSection } from "@/components/landing/ParallaxSection";
+import { ScrollProgressBar } from "@/components/landing/ScrollProgressBar";
+import { motion } from "framer-motion";
 
 const whatsappHref =
   "https://wa.me/393921143643?text=Ciao%20Voicyy%2C%20vorrei%20prenotare%20una%20consulenza%20gratuita%20per%20un%20agent%20AI.";
@@ -141,6 +144,7 @@ const scenarios = [
 export default function Home() {
   return (
     <ScrollJourney>
+      <ScrollProgressBar />
       <Header />
 
       <main className="overflow-clip bg-white text-neutral-950">
@@ -148,66 +152,80 @@ export default function Home() {
       <ImmersiveHero
         copy={
           <div className="hero-copy">
-            <div className="hero-kicker">
-              <span className="hero-kicker__pulse" aria-hidden="true" />
-              Agent vocali AI e chatbot, su misura
-            </div>
-            <h1 id="hero-title">
-              Ogni chiamata,
-              <span>una risposta.</span>
-            </h1>
-            <p className="hero-lead">
-              Voicyy trasforma chiamate, chat e prenotazioni in un flusso semplice.
-              Il tuo team resta concentrato; il tuo cliente trova sempre qualcuno pronto
-              ad aiutarlo.
-            </p>
+            <Reveal direction="down" distance={20} delay={0.2}>
+              <div className="hero-kicker">
+                <span className="hero-kicker__pulse" aria-hidden="true" />
+                Agent vocali AI e chatbot, su misura
+              </div>
+            </Reveal>
+            <Reveal direction="up" distance={40} delay={0.3}>
+              <h1 id="hero-title">
+                Ogni chiamata,
+                <span>una risposta.</span>
+              </h1>
+            </Reveal>
+            <Reveal direction="up" distance={30} delay={0.4}>
+              <p className="hero-lead">
+                Voicyy trasforma chiamate, chat e prenotazioni in un flusso semplice.
+                Il tuo team resta concentrato; il tuo cliente trova sempre qualcuno pronto
+                ad aiutarlo.
+              </p>
+            </Reveal>
 
-            <div className="hero-actions">
-              <a href="#configura" className="button button-lime button-large">
-                Configura il tuo agent
-                <ArrowRight aria-hidden="true" size={18} />
-              </a>
-              <a
-                href={whatsappHref}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="button button-outline button-large"
-                aria-label="Scrivi a Voicyy su WhatsApp per una consulenza gratuita (si apre in una nuova scheda)"
-              >
-                <MessageCircle aria-hidden="true" size={18} />
-                Consulenza gratuita
-              </a>
-            </div>
+            <Reveal direction="up" distance={20} delay={0.5}>
+              <div className="hero-actions">
+                <a href="#configura" className="button button-lime button-large">
+                  Configura il tuo agent
+                  <ArrowRight aria-hidden="true" size={18} />
+                </a>
+                <a
+                  href={whatsappHref}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="button button-outline button-large"
+                  aria-label="Scrivi a Voicyy su WhatsApp per una consulenza gratuita (si apre in una nuova scheda)"
+                >
+                  <MessageCircle aria-hidden="true" size={18} />
+                  Consulenza gratuita
+                </a>
+              </div>
+            </Reveal>
 
-            <ul className="hero-proof" aria-label="Informazioni principali">
-              <li>
-                <Check aria-hidden="true" size={15} />
-                Demo su misura
-              </li>
-              <li>
-                <Check aria-hidden="true" size={15} />
-                Consegna stimata 1–2 settimane
-              </li>
-              <li>
-                <Check aria-hidden="true" size={15} />
-                Supporto in italiano
-              </li>
-            </ul>
+            <Reveal direction="up" distance={10} delay={0.6}>
+              <ul className="hero-proof" aria-label="Informazioni principali">
+                <li>
+                  <Check aria-hidden="true" size={15} />
+                  Demo su misura
+                </li>
+                <li>
+                  <Check aria-hidden="true" size={15} />
+                  Consegna stimata 1–2 settimane
+                </li>
+                <li>
+                  <Check aria-hidden="true" size={15} />
+                  Supporto in italiano
+                </li>
+              </ul>
+            </Reveal>
           </div>
         }
       />
 
       <section className="trust-strip" aria-label="Integrazioni e capacità">
         <div className="site-shell trust-strip__inner">
-          <span>Un solo flusso, intorno alla tua attività</span>
-          <div className="trust-strip__marquee" aria-label="Tecnologie integrabili">
-            <div className="trust-strip__track">
-              <div className="trust-strip__items">{trustItems}</div>
-              <div className="trust-strip__items" aria-hidden="true">
-                {trustItems}
+          <Reveal direction="right" distance={20}>
+            <span>Un solo flusso, intorno alla tua attività</span>
+          </Reveal>
+          <Reveal direction="left" distance={40} delay={0.1}>
+            <div className="trust-strip__marquee" aria-label="Tecnologie integrabili">
+              <div className="trust-strip__track">
+                <div className="trust-strip__items">{trustItems}</div>
+                <div className="trust-strip__items" aria-hidden="true">
+                  {trustItems}
+                </div>
               </div>
             </div>
-          </div>
+          </Reveal>
         </div>
       </section>
 
@@ -218,23 +236,25 @@ export default function Home() {
         data-journey-stop="vantaggi"
       >
         <div className="site-shell">
-          <Reveal className="section-heading section-heading--light">
-            <div>
-              <span className="eyebrow eyebrow-light">Presenza, senza attese</span>
-              <h2 id="benefits-title">La segreteria che non perde il filo.</h2>
-            </div>
-            <p>
-              Un agent progettato sui tuoi processi risponde, comprende e porta avanti
-              il lavoro operativo, senza trasformare l’esperienza in un percorso
-              impersonale.
-            </p>
-          </Reveal>
+          <ParallaxSection offset={30}>
+            <Reveal className="section-heading section-heading--light">
+              <div>
+                <span className="eyebrow eyebrow-light">Presenza, senza attese</span>
+                <h2 id="benefits-title">La segreteria che non perde il filo.</h2>
+              </div>
+              <p>
+                Un agent progettato sui tuoi processi risponde, comprende e porta avanti
+                il lavoro operativo, senza trasformare l’esperienza in un percorso
+                impersonale.
+              </p>
+            </Reveal>
+          </ParallaxSection>
 
           <div className="benefit-grid">
             {benefits.map((benefit, index) => {
               const Icon = benefit.icon;
               return (
-                <Reveal key={benefit.title} delay={index * 0.08}>
+                <Reveal key={benefit.title} delay={index * 0.1} direction={index % 2 === 0 ? "left" : "right"}>
                   <article className="benefit-card">
                     <div className="benefit-card__top">
                       <span className="benefit-card__icon">
@@ -256,7 +276,7 @@ export default function Home() {
             })}
           </div>
 
-          <Reveal className="automation-banner">
+          <Reveal className="automation-banner" direction="up" distance={40}>
             <div className="automation-banner__icon">
               <Workflow aria-hidden="true" size={25} />
             </div>
@@ -278,21 +298,23 @@ export default function Home() {
         data-journey-stop="processo"
       >
         <div className="site-shell">
-          <Reveal className="section-heading">
-            <div>
-              <span className="eyebrow eyebrow-dark">Dal brief alla prima chiamata</span>
-              <h2 id="process-title">Su misura. Senza complicazioni.</h2>
-            </div>
-            <div className="delivery-badge">
-              <Clock3 aria-hidden="true" size={20} />
-              <span>
-                Tempo stimato
-                <strong>1–2 settimane</strong>
-              </span>
-            </div>
-          </Reveal>
+          <ParallaxSection offset={20}>
+            <Reveal className="section-heading">
+              <div>
+                <span className="eyebrow eyebrow-dark">Dal brief alla prima chiamata</span>
+                <h2 id="process-title">Su misura. Senza complicazioni.</h2>
+              </div>
+              <div className="delivery-badge">
+                <Clock3 aria-hidden="true" size={20} />
+                <span>
+                  Tempo stimato
+                  <strong>1–2 settimane</strong>
+                </span>
+              </div>
+            </Reveal>
+          </ParallaxSection>
 
-          <Reveal>
+          <Reveal direction="none" distance={0}>
             <ProcessAccordion items={process} />
           </Reveal>
         </div>
@@ -304,7 +326,7 @@ export default function Home() {
         data-journey-stop="tono-umano"
       >
         <div className="site-shell human-layout">
-          <Reveal className="human-visual">
+          <Reveal className="human-visual" direction="left" distance={50}>
             <div className="conversation-window" aria-hidden="true">
               <div className="conversation-window__top">
                 <span>
@@ -336,7 +358,7 @@ export default function Home() {
             </div>
           </Reveal>
 
-          <Reveal className="human-copy" delay={0.1}>
+          <Reveal className="human-copy" delay={0.2} direction="right" distance={50}>
             <span className="eyebrow eyebrow-dark">Tecnologia, con il tono giusto</span>
             <h2 id="human-title">Automatizzare non significa sembrare automatici.</h2>
             <p>
@@ -345,18 +367,17 @@ export default function Home() {
               inoltrare la richiesta.
             </p>
             <ul>
-              <li>
-                <Headphones aria-hidden="true" size={19} />
-                Voce e linguaggio scelti per il tuo pubblico
-              </li>
-              <li>
-                <Bot aria-hidden="true" size={19} />
-                Flussi testati sui casi reali dell’attività
-              </li>
-              <li>
-                <ShieldCheck aria-hidden="true" size={19} />
-                Raccolta dati limitata alle finalità dichiarate
-              </li>
+              {["Voce e linguaggio scelti per il tuo pubblico", "Flussi testati sui casi reali dell’attività", "Raccolta dati limitata alle finalità dichiarate"].map((text, i) => (
+                <motion.li 
+                  key={i}
+                  initial={{ opacity: 0, x: 20 }}
+                  whileInView={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.4 + i * 0.1 }}
+                >
+                  {i === 0 ? <Headphones size={19} /> : i === 1 ? <Bot size={19} /> : <ShieldCheck size={19} />}
+                  {text}
+                </motion.li>
+              ))}
             </ul>
           </Reveal>
         </div>
@@ -369,20 +390,22 @@ export default function Home() {
         data-journey-stop="scenari"
       >
         <div className="site-shell">
-          <Reveal className="section-heading">
-            <div>
-              <span className="eyebrow eyebrow-dark">Possibili applicazioni</span>
-              <h2 id="scenarios-title">Immaginalo nella tua giornata.</h2>
-            </div>
-            <p>
-              Questi esempi illustrano flussi possibili e non sono testimonianze di
-              clienti reali né risultati garantiti.
-            </p>
-          </Reveal>
+          <ParallaxSection offset={25}>
+            <Reveal className="section-heading">
+              <div>
+                <span className="eyebrow eyebrow-dark">Possibili applicazioni</span>
+                <h2 id="scenarios-title">Immaginalo nella tua giornata.</h2>
+              </div>
+              <p>
+                Questi esempi illustrano flussi possibili e non sono testimonianze di
+                clienti reali né risultati garantiti.
+              </p>
+            </Reveal>
+          </ParallaxSection>
 
           <div className="scenario-grid">
             {scenarios.map((scenario, index) => (
-              <Reveal key={scenario.sector} delay={index * 0.08}>
+              <Reveal key={scenario.sector} delay={index * 0.1} direction="up" distance={40}>
                 <article className="scenario-card">
                   <div className="scenario-card__label">
                     <Sparkles aria-hidden="true" size={14} />
@@ -410,7 +433,7 @@ export default function Home() {
         data-journey-stop="configuratore"
       >
         <div className="site-shell">
-          <Reveal className="configurator-intro">
+          <Reveal className="configurator-intro" direction="up" distance={30}>
             <div>
               <span className="eyebrow eyebrow-light">Il tuo agent, da qui</span>
               <h2 id="config-title">Raccontaci cosa deve saper fare.</h2>
@@ -421,7 +444,7 @@ export default function Home() {
             </p>
           </Reveal>
 
-          <Reveal className="form-shell" replay={false}>
+          <Reveal className="form-shell" direction="up" distance={50} delay={0.2}>
             <AgentRequestForm />
           </Reveal>
         </div>
@@ -433,7 +456,7 @@ export default function Home() {
         data-journey-stop="contatto"
       >
         <div className="site-shell">
-          <Reveal className="contact-cta__card">
+          <Reveal className="contact-cta__card" direction="up" distance={60}>
             <div>
               <span className="eyebrow eyebrow-dark">Preferisci parlarne?</span>
               <h2 id="contact-title">Partiamo da una conversazione vera.</h2>
