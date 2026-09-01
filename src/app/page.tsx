@@ -243,9 +243,7 @@ export default function Home() {
                 <h2 id="benefits-title">La segreteria che non perde il filo.</h2>
               </div>
               <p>
-                Un agent progettato sui tuoi processi risponde, comprende e porta avanti
-                il lavoro operativo, senza trasformare l’esperienza in un percorso
-                impersonale.
+                Inizia anche tu a risparmiare oltre i 2000€ al mese ad iniziare da OGGI.
               </p>
             </Reveal>
           </ParallaxSection>
@@ -320,68 +318,6 @@ export default function Home() {
         </div>
       </section>
 
-      <section
-        className="human-section"
-        aria-labelledby="human-title"
-        data-journey-stop="tono-umano"
-      >
-        <div className="site-shell human-layout">
-          <Reveal className="human-visual" direction="left" distance={50}>
-            <div className="conversation-window" aria-hidden="true">
-              <div className="conversation-window__top">
-                <span>
-                  <i /> Voicyy agent
-                </span>
-                <small>Ora</small>
-              </div>
-              <div className="voice-message">
-                <div className="voice-message__play">
-                  <PhoneCall size={17} />
-                </div>
-                <div className="voice-wave">
-                  {[9, 16, 24, 14, 30, 22, 12, 26, 18, 8, 20, 11].map(
-                    (height, index) => (
-                      <i key={`${height}-${index}`} style={{ height }} />
-                    ),
-                  )}
-                </div>
-                <span>00:18</span>
-              </div>
-              <div className="conversation-card">
-                <CalendarCheck2 size={20} />
-                <span>
-                  <small>Nuova prenotazione</small>
-                  Giovedì · 15:30
-                </span>
-                <Check size={17} />
-              </div>
-            </div>
-          </Reveal>
-
-          <Reveal className="human-copy" delay={0.2} direction="right" distance={50}>
-            <span className="eyebrow eyebrow-dark">Tecnologia, con il tono giusto</span>
-            <h2 id="human-title">Automatizzare non significa sembrare automatici.</h2>
-            <p>
-              Progettiamo ogni conversazione in italiano, con regole chiare e un tono
-              coerente con il tuo brand. Quando serve una persona, l’agent sa come
-              inoltrare la richiesta.
-            </p>
-            <ul>
-              {["Voce e linguaggio scelti per il tuo pubblico", "Flussi testati sui casi reali dell’attività", "Raccolta dati limitata alle finalità dichiarate"].map((text, i) => (
-                <motion.li 
-                  key={i}
-                  initial={{ opacity: 0, x: 20 }}
-                  whileInView={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.4 + i * 0.1 }}
-                >
-                  {i === 0 ? <Headphones size={19} /> : i === 1 ? <Bot size={19} /> : <ShieldCheck size={19} />}
-                  {text}
-                </motion.li>
-              ))}
-            </ul>
-          </Reveal>
-        </div>
-      </section>
 
       <section
         id="scenari"
